@@ -1,0 +1,28 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# vscode configuration files and folders
+.vscode/
+
+# vim configuration files and folders
+.cache/
+compile_commands.json
+
+# design and log files
+library/
+*.aig
+*.v
+*.txt
+log
+
+# abc log files
+abc.history
+abc.rc
+
+#benchmark
+benchmarks/
+
+#result
+results/
