@@ -26,3 +26,13 @@ benchmarks/
 
 #result
 results/
+
+#release file
+release/
+
+#library file
+*.genlib
+*.lib
+
+#temp file
+temp*

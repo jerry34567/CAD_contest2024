@@ -11,18 +11,22 @@ import graphExtractor as GE
 import torch
 from dgl.nn.pytorch import GraphConv
 import dgl
+import subprocess
 
 class EnvGraph(object):
     """
     @brief the overall concept of environment, the different. use the compress2rs as target
     """
-    def __init__(self, aigfile, libfile):
+    def __init__(self, aigfile, libfile, cost_function_name, genlibname, output):
         self._abc = abcPy.AbcInterface()
         self._aigfile = aigfile
         self._libfile = libfile
+        self._genlib = genlibname
+        self.cost_function = cost_function_name
+        self.output = output
         self._abc.start()
         self.lenSeq = 0
-        self._abc.read_lib(self._libfile)
+        self._abc.read_lib(self._genlib)
         self._abc.read(self._aigfile)
         initAigStats = self._abc.aigStats() # The initial AIG statistics
         self._abc.backup()
@@ -35,14 +39,18 @@ class EnvGraph(object):
         self.initNumNode = float(initNetListStats.node)
         self.initNumEdge = float(initNetListStats.edge)
         self.initNetLev = float(initNetListStats.lev)
+        self._abc.write_verilog(output)
+        self.initCost = float(self.cost())
+        initStateValue = self.statValue(initNetListStats)
         self._abc.restore()
         self.compress2rs() # run a compress2rs as target
         targetAigStats = self._abc.aigStats()
         self._abc.map()
+        self._abc.write_verilog(output)
         targetNetListStats = self._abc.netlistStats()
-        totalReward = self.statValue(initNetListStats) - self.statValue(targetNetListStats)
+        totalReward = initStateValue - self.statValue(targetNetListStats)
         self._rewardBaseline = totalReward / 18.0 # 18 is the length of compress2rs sequence
-        print("baseline area ", targetNetListStats.area, "baseline delay ", targetNetListStats.delay, " total reward ", totalReward )
+        # print("baseline area ", targetNetListStats.area, "baseline delay ", targetNetListStats.delay, " total reward ", totalReward )
     def resyn2(self):
         self._abc.balance(l=False)
         self._abc.rewrite(l=False)
@@ -58,13 +66,16 @@ class EnvGraph(object):
         self.lenSeq = 0
         self._abc.end()
         self._abc.start()
-        self._abc.read_lib(self._libfile)
+        self._abc.read_lib(self._genlib)
         self._abc.read(self._aigfile)
         self._abc.backup()
         self._lastAigStats = self._abc.aigStats() # The initial AIG statistics
         self._curAigStats = self._lastAigStats # the current AIG statistics
         self._abc.map()
+        self._abc.write_verilog(self.output)
         self._lastNetStats = self._abc.netlistStats() # The initial NetList statistics
+        self._lastReward = self.statValue(self._lastNetStats)
+        self._curReward = self._lastReward
         self._curNetStats = self._lastNetStats # the current NetList statistics
         self._abc.restore()
         self.lastAct = self.numActions() - 1
@@ -156,6 +167,9 @@ class EnvGraph(object):
         self._abc.map()
         self._lastNetStats = self._curNetStats
         self._curNetStats = self._abc.netlistStats()
+        self._abc.write_verilog(self.output)
+        self._lastReward = self._curReward
+        self._curReward = self.curStatsValue()
         self._abc.restore()
         return False
     def state(self):
@@ -169,9 +183,13 @@ class EnvGraph(object):
         lastOneHotActs[self.lastAct3] += 1/3
         lastOneHotActs[self.lastAct] += 1/3
         stateArray = np.array([self._curAigStats.numAnd / self.initNumAnd, self._curAigStats.lev / self.initAigLev,
-            self._curNetStats.area / self.initArea, self._curNetStats.delay / self.initDelay,
+            self._curNetStats.node / self.initNumNode, self._curNetStats.edge / self.initNumEdge,
+            self._curNetStats.lev / self.initNetLev,
+            # self._curNetStats.area / self.initArea, self._curNetStats.delay / self.initDelay,
             self._lastAigStats.numAnd / self.initNumAnd, self._lastAigStats.lev / self.initAigLev, 
-            self._lastNetStats.area / self.initArea, self._lastNetStats.delay / self.initDelay])
+            # self._lastNetStats.area / self.initArea, self._lastNetStats.delay / self.initDelay])
+            self._lastNetStats.node / self.initNumNode, self._lastNetStats.edge / self.initNumEdge,
+            self._lastNetStats.lev / self.initNetLev])
         stepArray = np.array([float(self.lenSeq) / 20.0])
         combined = np.concatenate((stateArray, oneHotAct, lastOneHotActs, stepArray), axis=-1)
         #combined = np.expand_dims(combined, axis=0)
@@ -182,7 +200,7 @@ class EnvGraph(object):
     def reward(self):
         if self.lastAct == 5: #term
             return 0
-        return self.statValue(self._lastNetStats) - self.statValue(self._curNetStats) - self._rewardBaseline
+        return self._lastReward - self.statValue(self._curNetStats) - self._rewardBaseline
         #return -self._lastStats.numAnd + self._curStats.numAnd - 1
         if (self._curStats.numAnd < self._lastStats.numAnd and self._curStats.lev < self._lastStats.lev):
             return 2
@@ -195,10 +213,13 @@ class EnvGraph(object):
     def numActions(self):
         return 5 #can revise
     def dimState(self):
-        return 8 + self.numActions() * 2 + 1
+        return 10 + self.numActions() * 2 + 1
     def returns(self):
+        return self.cost()
         return [self._curNetStats.area , self._curNetStats.delay]
     def statValue(self, stat):
+        cost = self.cost()
+        return 3 * float(cost) / float(self.initCost) + float(stat.edge) / float(self.initNumEdge) + float(stat.node) / float(self.initNumNode) + float(stat.lev) / float(self.initNetLev)
         return float(stat.area)  / float(self.initArea) + float(stat.delay) / float(self.initDelay) # to be finetune
         return float(stat.numAnd)  / float(self.initNumAnd) #  + float(stat.lev)  / float(self.initLev)
         #return stat.numAnd + stat.lev * 10
@@ -208,4 +229,11 @@ class EnvGraph(object):
         pass
     def compress2rs(self):
         self._abc.compress2rs()
-
+    def cost(self):
+        exe_path = self.cost_function
+        args = ["-library", self._libfile, "-netlist", self.output, "-output" , "temp"]
+        process = subprocess.Popen([exe_path] + args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, _ = process.communicate()
+        a = stdout.decode()
+        cost = a.split('=')[1].strip()
+        return cost
