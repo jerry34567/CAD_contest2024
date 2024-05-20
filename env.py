@@ -139,15 +139,29 @@ class EnvGraph(object):
         """
         if actionIdx == 0:
             self._abc.balance(l=False) # b
+            print("balance")
         elif actionIdx == 1:
             self._abc.rewrite(l=False) # rw
+            print("rewrite")
         elif actionIdx == 2:
             self._abc.refactor(l=False) # rf
+            print("rf")
         elif actionIdx == 3:
             self._abc.rewrite(l=False, z=True) #rw -z
+            print("rw -z")
         elif actionIdx == 4:
             self._abc.refactor(l=False, z=True) #rs
+            print("rs")
         elif actionIdx == 5:
+            self._abc.orchestrate()
+            print("orchestrate")
+        elif actionIdx == 6:
+            self._abc.ifraig()
+            print("ifraig")
+        elif actionIdx == 7:
+            self._abc.dc2()
+            print("dc2")
+        elif actionIdx == 8:
             self._abc.end()
             return True
         else:
@@ -163,6 +177,8 @@ class EnvGraph(object):
         # update the statitics
         self._lastAigStats = self._curAigStats
         self._curAigStats = self._abc.aigStats()
+        print(self._curAigStats.numAnd)
+        print(self._curAigStats.lev)
         self._abc.backup()
         self._abc.map()
         self._lastNetStats = self._curNetStats
@@ -170,6 +186,7 @@ class EnvGraph(object):
         self._abc.write_verilog(self.output)
         self._lastReward = self._curReward
         self._curReward = self.curStatsValue()
+        print(self.cost())
         self._abc.restore()
         return False
     def state(self):
@@ -198,7 +215,7 @@ class EnvGraph(object):
         graph = GE.extract_dgl_graph(self._abc)
         return (combined_torch, graph)
     def reward(self):
-        if self.lastAct == 5: #term
+        if self.lastAct == 8: #term
             return 0
         return self._lastReward - self.statValue(self._curNetStats) - self._rewardBaseline
         #return -self._lastStats.numAnd + self._curStats.numAnd - 1
@@ -211,7 +228,7 @@ class EnvGraph(object):
         else:
             return -2
     def numActions(self):
-        return 5 #can revise
+        return 8 #can revise
     def dimState(self):
         return 10 + self.numActions() * 2 + 1
     def returns(self):
