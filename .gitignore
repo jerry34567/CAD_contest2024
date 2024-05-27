@@ -32,7 +32,24 @@ release/
 
 #library file
 *.genlib
-*.lib
 
 #temp file
 temp*
+
+#engine
+engine/
+# static library files
+lib/
+# headers files
+include/
+
+# makefile files
+SA/src/*/*.mak
+# object files
+SA/src/*/*.o
+# yosys extension files
+src/ext/*.so
+src/ext/*.d
+
+#executable file
+cadcontest

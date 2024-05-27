@@ -251,7 +251,7 @@ class Reinforce(object):
             state = nextState
             if len(states) > 20:
                 term = True
-        return Trajectory(states, rewards, actions, self._env.curStatsValue())
+        return Trajectory(states, rewards, actions, self._env.cost())
     def episode(self, phaseTrain=True):
         trajectory = self.genTrajectory(phaseTrain=phaseTrain) # Generate a trajectory of episode of states, actions, rewards
         self.updateTrajectory(trajectory, phaseTrain)
@@ -289,3 +289,4 @@ class Reinforce(object):
             upper = min(len(self.memTrajectory) / 10, 30)
             r1 = random.randint(0, upper)
             self.updateTrajectory(self.memTrajectory[idx])
+

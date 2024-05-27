@@ -26,11 +26,17 @@ class EnvGraph(object):
         self.output = output
         self._abc.start()
         self.lenSeq = 0
+        # self._abc.read_lib("contest.genlib")
         self._abc.read_lib(self._genlib)
         self._abc.read(self._aigfile)
         initAigStats = self._abc.aigStats() # The initial AIG statistics
         self._abc.backup()
-        self._abc.map()
+        # self._abc.map()
+        self._abc.abccmd("&get -n")
+        self._abc.abccmd("&dch")
+        self._abc.abccmd("&nf")
+        self._abc.abccmd("&put")
+        self._abc.abccmd("mfs3 -ae -I 4 -O 2")
         initNetListStats = self._abc.netlistStats()
         self.initArea = float(initNetListStats.area)
         self.initDelay = float(initNetListStats.delay)
@@ -45,7 +51,12 @@ class EnvGraph(object):
         self._abc.restore()
         self.compress2rs() # run a compress2rs as target
         targetAigStats = self._abc.aigStats()
-        self._abc.map()
+        # self._abc.map()
+        self._abc.abccmd("&get -n")
+        self._abc.abccmd("&dch")
+        self._abc.abccmd("&nf")
+        self._abc.abccmd("&put")
+        self._abc.abccmd("mfs3 -ae -I 4 -O 2")
         self._abc.write_verilog(output)
         targetNetListStats = self._abc.netlistStats()
         totalReward = initStateValue - self.statValue(targetNetListStats)
@@ -66,12 +77,18 @@ class EnvGraph(object):
         self.lenSeq = 0
         self._abc.end()
         self._abc.start()
+        # self._abc.read_lib("contest.genlib")
         self._abc.read_lib(self._genlib)
         self._abc.read(self._aigfile)
         self._abc.backup()
         self._lastAigStats = self._abc.aigStats() # The initial AIG statistics
         self._curAigStats = self._lastAigStats # the current AIG statistics
-        self._abc.map()
+        # self._abc.map()
+        self._abc.abccmd("&get -n")
+        self._abc.abccmd("&dch")
+        self._abc.abccmd("&nf")
+        self._abc.abccmd("&put")
+        self._abc.abccmd("mfs3 -ae -I 4 -O 2")
         self._abc.write_verilog(self.output)
         self._lastNetStats = self._abc.netlistStats() # The initial NetList statistics
         self._lastReward = self.statValue(self._lastNetStats)
@@ -139,29 +156,31 @@ class EnvGraph(object):
         """
         if actionIdx == 0:
             self._abc.balance(l=False) # b
-            print("balance")
+            # print("balance")
         elif actionIdx == 1:
             self._abc.rewrite(l=False) # rw
-            print("rewrite")
+            # print("rewrite")
         elif actionIdx == 2:
             self._abc.refactor(l=False) # rf
-            print("rf")
+            # print("rf")
         elif actionIdx == 3:
             self._abc.rewrite(l=False, z=True) #rw -z
-            print("rw -z")
+            # print("rw -z")
         elif actionIdx == 4:
-            self._abc.refactor(l=False, z=True) #rs
-            print("rs")
+            self._abc.refactor(l=False, z=True) #rf -z
         elif actionIdx == 5:
-            self._abc.orchestrate()
-            print("orchestrate")
+            self._abc.resub(l=False) # rs
+            # print("rs")
         elif actionIdx == 6:
-            self._abc.ifraig()
-            print("ifraig")
+            self._abc.orchestrate(n=3)
+            # print("orchestrate")
         elif actionIdx == 7:
-            self._abc.dc2()
-            print("dc2")
+            self._abc.ifraig()
+            # print("ifraig")
         elif actionIdx == 8:
+            self._abc.dc2()
+            # print("dc2")
+        elif actionIdx == 9:
             self._abc.end()
             return True
         else:
@@ -177,16 +196,21 @@ class EnvGraph(object):
         # update the statitics
         self._lastAigStats = self._curAigStats
         self._curAigStats = self._abc.aigStats()
-        print(self._curAigStats.numAnd)
-        print(self._curAigStats.lev)
+        # print(self._curAigStats.numAnd)
+        # print(self._curAigStats.lev)
         self._abc.backup()
-        self._abc.map()
+        # self._abc.map()
+        self._abc.abccmd("&get -n")
+        self._abc.abccmd("&dch")
+        self._abc.abccmd("&nf")
+        self._abc.abccmd("&put")
+        self._abc.abccmd("mfs3 -ae -I 4 -O 2")
         self._lastNetStats = self._curNetStats
         self._curNetStats = self._abc.netlistStats()
         self._abc.write_verilog(self.output)
         self._lastReward = self._curReward
         self._curReward = self.curStatsValue()
-        print(self.cost())
+        # print(self.cost())
         self._abc.restore()
         return False
     def state(self):
@@ -228,7 +252,7 @@ class EnvGraph(object):
         else:
             return -2
     def numActions(self):
-        return 8 #can revise
+        return 9 #can revise
     def dimState(self):
         return 10 + self.numActions() * 2 + 1
     def returns(self):
@@ -253,4 +277,4 @@ class EnvGraph(object):
         stdout, _ = process.communicate()
         a = stdout.decode()
         cost = a.split('=')[1].strip()
-        return cost
+        return float(cost)
