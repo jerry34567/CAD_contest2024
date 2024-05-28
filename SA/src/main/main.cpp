@@ -9,12 +9,14 @@
 #include <vector>
 #include "parser.h"
 #include "core.h"
+#include "dc.h"
 
 using namespace std;
 
 extern AbcMgr* abcMgr;
 
 int main(int argc, char** argv) {
+    rnGen(2);
 
     abcMgr = new AbcMgr;
     string cost_function;
@@ -39,36 +41,51 @@ int main(int argc, char** argv) {
     }
     // get cost of each gate
     parser(library, netlist, cost_function);
-    rnGen(2);
-
-    string argument = "-library " + library + " -netlist " + netlist + " -output " + output;
-
     string read_lib = "read ./contest.genlib";
+    abccmd(read_lib);
+
+    dc_gen();
+
+    abccmd("read -m syn_design.v");
+    string write_verilog = "write_verilog ";
+    write_verilog += output; 
+    abccmd(write_verilog);
+
+    string args = "-library " + library + " -netlist " + output + " -output temp.out";
+
+    string temp = exec(cost_function, args);
+    double best_cost = extractCost(temp);
+    cout << "design_compiler: " << best_cost << endl;
+
     string read_design = "read ";
     read_design += netlist;
-    abccmd(read_lib);
     abccmd(read_design);
 
     abccmd("backup");
     abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
     abccmd("orchestrate -N 3");
     abccmd("&get -n");
-    abccmd("&nf");
+    abccmd("&dch -f");
+    abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
     abccmd("&put");
     abccmd("mfs3 -ae -I 4 -O 2");
-    string write_verilog = "write_verilog ";
-    write_verilog += output; 
-    abccmd(write_verilog);
-    abccmd("restore");
-    string args = "-library " + library + " -netlist " + output + " -output temp.out";
-    string temp = exec(cost_function, args);
-    double best_cost = extractCost(temp);
-    cout << best_cost << endl;
+    
+    abccmd("write_verilog temp.v");
+    args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
+    temp = exec(cost_function, args);
+    double temp_cost = extractCost(temp);
+    if (temp_cost < best_cost) {
+        abccmd(write_verilog);
+        best_cost = temp_cost;
+    }
+    cout << "script: " << temp_cost << endl;
     double record = best_cost;
+    abccmd("restore");
     vector<string> best_actions;
 
     vector<string> actions;
     for (int i = 0; i < 50; i++) {
+        cout << "i: " << i << endl;
         actions = simulated_annealing(library, cost_function, best_cost, output);
         if (record > best_cost) {
             best_actions = actions;

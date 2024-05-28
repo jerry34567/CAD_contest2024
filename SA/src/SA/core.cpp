@@ -28,7 +28,8 @@ double cost_diff(double orginal_cost, double after_cost, double init_cost) {
 double cost_cal(const string& lib_file, const string& cost_exe, const string& output_file) {
     abccmd("backup");
     abccmd("&get -n");
-    abccmd("&nf");
+    abccmd("&dch -f");
+    abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
     abccmd("&put");
     abccmd("mfs3 -ae -I 4 -O 2");
     string write_verilog = "write_verilog ";

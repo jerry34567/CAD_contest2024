@@ -1,5 +1,5 @@
-SRCPKGS  = util abc SA parser
-LIBPKGS  = util abc SA parser
+SRCPKGS  = util abc SA parser design_compiler
+LIBPKGS  = util abc SA parser design_compiler
 
 MAIN     = main
 
