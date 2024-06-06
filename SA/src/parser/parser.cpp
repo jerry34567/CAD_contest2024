@@ -28,14 +28,14 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
 
     // Dictionary
     unordered_map<string, string> dictionary;
-    dictionary["not"] = "O=!a;";
-    dictionary["buf"] = "O=a;";
-    dictionary["and"] = "O=a*b;";
-    dictionary["nand"] = "O=!(a*b);";
-    dictionary["or"] = "O=a+b;";
-    dictionary["nor"] = "O=!(a+b);";
-    dictionary["xor"] = "O=a*!b+!a*b;";
-    dictionary["xnor"] = "O=a*b+!a*!b;";
+    dictionary["not"] = "Y=!A;";
+    dictionary["buf"] = "Y=A;";
+    dictionary["and"] = "Y=A*B;";
+    dictionary["nand"] = "Y=!(A*B);";
+    dictionary["or"] = "Y=A+B;";
+    dictionary["nor"] = "Y=!(A+B);";
+    dictionary["xor"] = "Y=A*!B+!A*B;";
+    dictionary["xnor"] = "Y=A*B+!A*!B;";
 
     unordered_map<string, string> dictionary2;
     dictionary2["not"] = "INV";
@@ -48,14 +48,14 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     dictionary2["xnor"] = "UNKNOWN";
 
     unordered_map<string, string> dictionary3;
-    dictionary3["not"] = "!a";
-    dictionary3["buf"] = "a";
-    dictionary3["and"] = "a & b";
-    dictionary3["nand"] = "!(a & b)";
-    dictionary3["or"] = "a | b";
-    dictionary3["nor"] = "!(a | b)";
-    dictionary3["xor"] = "(a & !b) | (!a & b)";
-    dictionary3["xnor"] = "(a & b) | (!a & !b)";
+    dictionary3["not"] = "!A";
+    dictionary3["buf"] = "A";
+    dictionary3["and"] = "A & B";
+    dictionary3["nand"] = "!(A & B)";
+    dictionary3["or"] = "A | B";
+    dictionary3["nor"] = "!(A | B)";
+    dictionary3["xor"] = "(A & !B) | (!A & B)";
+    dictionary3["xnor"] = "(A & B) | (!A & !B)";
 
     map<string, pair<string, float>> temp_dic;
 
@@ -98,7 +98,7 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     for (auto& cell_data : temp_dic) {
         writefile << "GATE " << cell_data.second.first << "\t" << cell_data.second.second << "\t";
         writefile << dictionary[cell_data.first] << "\t";
-        writefile << "PIN * " << dictionary2[cell_data.first] << " 1 999 0 0 0 0\n";
+        writefile << "PIN * " << dictionary2[cell_data.first] << " 1 999 1.5 0.5 1.5 0.5\n";
     }
     writefile << "GATE zero\t0\tO=CONST0;\nGATE one\t0\tO=CONST1;\n";
     writefile.close();
@@ -121,9 +121,7 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
                  "current_design $design_name\n" +
                  "set_max_area 0\n" +
                  "uniquify\n" +
-                 "compile_ultra -area\n" +
-                 "compile_ultra -incremental\n" +
-                 "compile_ultra -incremental\n" +
+                 "compile_ultra -area -no_design_rule\n" +
                  "compile_ultra -incremental\n" +
                  "optimize_netlist -area\n" +
                  "optimize_netlist -area\n" +
@@ -155,12 +153,12 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
         write_lib << "\tcell(" << cell_data.second.first << ") {\n"
                   << "\t\tarea : " << cell_data.second.second << ";\n";
         if (cell_data.first == "not" || cell_data.first == "buf") {
-            write_lib << "\t\tpin(a) {\n\t\t\tdirection : input;\n\t\t}\n\t\tpin(O) {\n\t\t\tdirection : output;\n\t\t\tfunction : \""
-                      << dictionary3[cell_data.first] << "\";\n\t\t\ttiming() {\n \t\t\t\trelated_pin : \"a\";\n\t\t\t}\n\t\t}\n\t}\n\n";
+            write_lib << "\t\tpin(A) {\n\t\t\tdirection : input;\n\t\t}\n\t\tpin(Y) {\n\t\t\tdirection : output;\n\t\t\tfunction : \""
+                      << dictionary3[cell_data.first] << "\";\n\t\t\ttiming() {\n \t\t\t\trelated_pin : \"A\";\n\t\t\t}\n\t\t}\n\t}\n\n";
         }
         else {
-            write_lib << "\t\tpin(a) {\n\t\t\tdirection : input;\n\t\t}\n\t\tpin(b) {\n\t\t\tdirection : input;\n\t\t}\n\t\tpin(O) {\n\t\t\tdirection : output;\n\t\t\tfunction : \""
-                      << dictionary3[cell_data.first] << "\";\n\t\t\ttiming() {\n \t\t\t\trelated_pin : \"a\";\n\t\t\t}timing() {\n \t\t\t\trelated_pin : \"b\";\n\t\t\t}\n\t\t}\n\t}\n\n";
+            write_lib << "\t\tpin(A) {\n\t\t\tdirection : input;\n\t\t}\n\t\tpin(B) {\n\t\t\tdirection : input;\n\t\t}\n\t\tpin(Y) {\n\t\t\tdirection : output;\n\t\t\tfunction : \""
+                      << dictionary3[cell_data.first] << "\";\n\t\t\ttiming() {\n \t\t\t\trelated_pin : \"A\";\n\t\t\t}timing() {\n \t\t\t\trelated_pin : \"B\";\n\t\t\t}\n\t\t}\n\t}\n\n";
         }
     }
     write_lib << "}\n";

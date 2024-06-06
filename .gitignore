@@ -15,7 +15,7 @@ library/
 *.aig
 *.v
 *.txt
-log
+*log
 
 # abc log files
 abc.history
@@ -32,6 +32,8 @@ release/
 
 #library file
 *.genlib
+*liberty.lib
+*.super
 
 #temp file
 temp*
@@ -53,3 +55,12 @@ src/ext/*.d
 
 #executable file
 cadcontest
+
+# shell script
+*.sh
+
+# source file
+abc.source
+
+# tcl file
+*.tcl

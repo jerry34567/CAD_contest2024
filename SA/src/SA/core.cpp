@@ -16,7 +16,9 @@ double error_func(double rate, float er_threshold) {
 }
 
 double cost_func(int cur_cost, int orig_cost){
-    return 0.5*pow((cur_cost - orig_cost) / orig_cost, 4);
+    if (orig_cost != 0)
+        return 0.5*pow((cur_cost - orig_cost) / orig_cost, 4);
+    return 0.1;
 }
 
 double cost_diff(double orginal_cost, double after_cost, double init_cost) {

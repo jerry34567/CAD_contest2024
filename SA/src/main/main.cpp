@@ -43,13 +43,17 @@ int main(int argc, char** argv) {
     parser(library, netlist, cost_function);
     string read_lib = "read ./contest.genlib";
     abccmd(read_lib);
-
-    dc_gen();
-
-    abccmd("read -m syn_design.v");
     string write_verilog = "write_verilog ";
     write_verilog += output; 
-    abccmd(write_verilog);
+
+    ///// for design compiler ///////
+    // dc_gen();
+
+    // abccmd("read -m syn_design.v");
+    // abccmd("mfs3 -ae -I 4 -O 2");
+    // abccmd("mfs3 -ae -I 4 -O 2");
+    // abccmd(write_verilog);
+    /////////////////////////////////
 
     string args = "-library " + library + " -netlist " + output + " -output temp.out";
 
@@ -62,12 +66,14 @@ int main(int argc, char** argv) {
     abccmd(read_design);
 
     abccmd("backup");
+    abccmd("strash");
     abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
     abccmd("orchestrate -N 3");
     abccmd("&get -n");
     abccmd("&dch -f");
     abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
     abccmd("&put");
+    abccmd("mfs3 -ae -I 4 -O 2");
     abccmd("mfs3 -ae -I 4 -O 2");
     
     abccmd("write_verilog temp.v");

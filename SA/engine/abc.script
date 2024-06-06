@@ -1,7 +1,7 @@
 # abc
-#git clone https://github.com/jerry34567/abc.git
-#git checkout -b CAD_2024_version origin/CAD_2024_version
-#cd abc
+git clone https://github.com/jerry34567/abc.git
+cd abc
+git checkout -b CAD_2024_version origin/CAD_2024_version
 
 # make abc 
 make -j12
