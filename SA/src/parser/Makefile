@@ -1,5 +1,5 @@
 PKGFLAG   = $(DEBUG_FLAG)
-EXTHDRS   = cost.h parser.h
+EXTHDRS   = parser.h
 
 include ../Makefile.in
 include ../Makefile.lib

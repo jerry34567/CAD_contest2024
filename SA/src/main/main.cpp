@@ -8,14 +8,62 @@
 #include <sstream>
 #include <vector>
 #include "parser.h"
-#include "core.h"
+#include "cmd_sa.h"
+#include "lib_sa.h"
 #include "dc.h"
+#include <chrono>
+#include "lib_greedy.h"
 
 using namespace std;
 
 extern AbcMgr* abcMgr;
 
+void dc_exe(const string& write_verilog, const string& library, const string& output, const string& cost_function, double& best_cost) {
+    dc_gen();
+
+    ifstream temp_file("syn_design.v");
+    if (!temp_file.is_open()) return;
+    abccmd("read -m syn_design.v");
+    abccmd("mfs3 -ae -I 4 -O 2");
+    abccmd("mfs3 -ae -I 4 -O 2");
+    abccmd("write_verilog temp.v");
+
+    string args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
+    string temp = exec(cost_function, args);
+    double dc_cost = extractCost(temp);
+    if (dc_cost < best_cost) {
+        abccmd(write_verilog);
+        best_cost = dc_cost;
+    }
+    cout << "design_compiler: " << dc_cost << endl;
+}
+
+void script_exe(const string& write_verilog, const string& library, const string& output, const string& cost_function, double& best_cost) {
+    abccmd("backup");
+    abccmd("strash");
+    abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
+    abccmd("orchestrate -N 3");
+    abccmd("&get -n");
+    abccmd("&dch -f");
+    abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
+    abccmd("&put");
+    abccmd("mfs3 -ae -I 4 -O 2");
+    abccmd("mfs3 -ae -I 4 -O 2");
+    abccmd("write_verilog temp.v");
+
+    string args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
+    string temp = exec(cost_function, args);
+    double temp_cost = extractCost(temp);
+    if (temp_cost < best_cost) {
+        abccmd(write_verilog);
+        best_cost = temp_cost;
+    }
+    abccmd("restore");
+    cout << "script: " << temp_cost << endl;
+}
+
 int main(int argc, char** argv) {
+    auto start = std::chrono::high_resolution_clock::now();
     rnGen(2);
 
     abcMgr = new AbcMgr;
@@ -23,6 +71,8 @@ int main(int argc, char** argv) {
     string library;
     string netlist;
     string output;
+    string temp;
+    string args;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -39,61 +89,75 @@ int main(int argc, char** argv) {
             output = argv[++i]; 
         }
     }
+
     // get cost of each gate
-    parser(library, netlist, cost_function);
+    double best_cost = MAXFLOAT;
+    map<string, pair<string, float>> gate_cost_dic;
+    map<string, vector<float>> gate_timing_dic;
+    parser(library, netlist, cost_function, gate_cost_dic, gate_timing_dic);
+
     string read_lib = "read ./contest.genlib";
     abccmd(read_lib);
     string write_verilog = "write_verilog ";
     write_verilog += output; 
 
     ///// for design compiler ///////
-    // dc_gen();
-
-    // abccmd("read -m syn_design.v");
-    // abccmd("mfs3 -ae -I 4 -O 2");
-    // abccmd("mfs3 -ae -I 4 -O 2");
-    // abccmd(write_verilog);
+    dc_exe(write_verilog, library, output, cost_function, best_cost);
     /////////////////////////////////
-
-    string args = "-library " + library + " -netlist " + output + " -output temp.out";
-
-    string temp = exec(cost_function, args);
-    double best_cost = extractCost(temp);
-    cout << "design_compiler: " << best_cost << endl;
 
     string read_design = "read ";
     read_design += netlist;
     abccmd(read_design);
 
-    abccmd("backup");
+    ///// for abc script /////////
+    script_exe(write_verilog, library, output, cost_function, best_cost);
+    //////////////////////////////
+
+    
+    double record = best_cost;
+    vector<string> best_actions;
+    vector<string> actions;
+    bool SA_flag = false;
+
+    ///// lib_SA //////
+    // abccmd("strash");
+    // abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
+    // abccmd("orchestrate -N 3");
+    // for (int i = 0; i < 10; i++) {
+    //     cout << "i: " << i << endl;
+    //     lib_simulated_annealing(library, cost_function, best_cost, output, gate_cost_dic, gate_timing_dic);
+
+    //     if (record > best_cost) {
+    //         record = best_cost;
+    //         cout << best_cost << endl;
+    //     }
+    //     else {
+    //         best_cost = record;
+    //     }
+    // }
+    ////////////////////
+
+    ////// lib_greedy /////
     abccmd("strash");
     abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
     abccmd("orchestrate -N 3");
-    abccmd("&get -n");
-    abccmd("&dch -f");
-    abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
-    abccmd("&put");
-    abccmd("mfs3 -ae -I 4 -O 2");
-    abccmd("mfs3 -ae -I 4 -O 2");
-    
-    abccmd("write_verilog temp.v");
-    args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
-    temp = exec(cost_function, args);
-    double temp_cost = extractCost(temp);
-    if (temp_cost < best_cost) {
-        abccmd(write_verilog);
-        best_cost = temp_cost;
+    lib_greedy(library, cost_function, best_cost, output, gate_cost_dic, gate_timing_dic);
+    if (record > best_cost) {
+        record = best_cost;
+        cout << best_cost << endl;
     }
-    cout << "script: " << temp_cost << endl;
-    double record = best_cost;
-    abccmd("restore");
-    vector<string> best_actions;
+    else {
+        best_cost = record;
+    }
+    ////////////////////
 
-    vector<string> actions;
-    for (int i = 0; i < 50; i++) {
+    //// cmd_SA /////
+    for (int i = 0; i < 10; i++) {
         cout << "i: " << i << endl;
-        actions = simulated_annealing(library, cost_function, best_cost, output);
+        actions = cmd_simulated_annealing(library, cost_function, best_cost, output);
+
         if (record > best_cost) {
+            SA_flag = true;
             best_actions = actions;
             record = best_cost;
             cout << best_cost << endl;
@@ -103,14 +167,34 @@ int main(int argc, char** argv) {
         }
         abccmd(read_design);
     }
-    
+    //////////////////
+
+    // if put the lib greedy or lib sa after cmd_sa, should execute the code below first ///////////
+    // if (SA_flag) {
+    //     abccmd("strash");
+    //     for (int i = 0; i < best_actions.size(); i++) {
+    //         abccmd(best_actions[i]);
+    //     }
+    // }
+    // else {
+    //     abccmd("strash");
+    //     abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
+    //     abccmd("orchestrate -N 3");
+    // }
+    ///////////////////////
+
+
+    ///// dc after revising genlib /////
+    // dc_exe(write_verilog, library, output, cost_function, best_cost);
+
 
     cout << "best_cost: " << best_cost << endl;
     for (int i = 0; i < actions.size(); i++) {
         cout << best_actions[i] << endl;
     }
-    // // std::cout << "node_num (orig/after): " << node_nums_orig << " " << node_nums_after << "\n"; 
-    // cout << "best_area: " << Abc_NtkGetMappedArea(Abc_FrameReadNtk(abcMgr->get_Abc_Frame_t())) << " error: " << float(error_record) *100 << "%" << endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> duration = end - start;
+    std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;
     return 0;
 }
 

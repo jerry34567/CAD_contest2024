@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 #include <array>
 #include <sstream>
+#include <regex>
 #include "cost.h"
 
 
@@ -23,6 +24,19 @@ public:
     vector<double> float_attributes;
 };
 
-int parser(const string&, const string&, const string&);
+extern unordered_map<string, string> dictionary;
+extern unordered_map<string, string> dictionary2;
+extern unordered_map<string, string> dictionary3;
+
+void initDictionary();
+void initDictionary2();
+void initDictionary3();
+void write_genlib(const string&, map<string, pair<string, float>>&, map<string, vector<float>>&);
+void write_syntcl(const string&, const string&);
+void initTimingDictionary(map<string, vector<float>>&);
+void write_liberty(map<string, pair<string, float>>&);
+int parser(const string&, const string&, const string&, map<string, pair<string, float>>&, map<string, vector<float>>&);
+
+
 
 #endif
