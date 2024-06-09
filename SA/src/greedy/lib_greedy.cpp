@@ -1,5 +1,7 @@
 #include "lib_greedy.h"
 #include "util.h"
+#include <vector>
+#include <algorithm>
 
 double do_action(int i, const string& lib_file, const string& cost_exe, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic) {
     switch(i){
@@ -154,6 +156,8 @@ double do_action(int i, const string& lib_file, const string& cost_exe, map<stri
     
 }
 
+vector<int> myArray;
+
 void lib_greedy(const string& lib_file, const string& cost_exe, double& best_cost, const string& output, const map<string, pair<string, float>>& gate_cost_dic, const map<string, vector<float>>& gate_timing_dic){
     double orig_cost = cost_cal(lib_file, cost_exe, "temp.v");
     map<string, pair<string, float>> temp_dic = gate_cost_dic;
@@ -166,6 +170,10 @@ void lib_greedy(const string& lib_file, const string& cost_exe, double& best_cos
         int best_action;
         bool has_better = false;
         for (int i = 0; i < 48; i++) {
+            if (find(myArray.begin(), myArray.end(), i) != myArray.end()) {
+                cout << i << " is in the array." << std::endl;
+                continue;
+            }
             cout << "I: " << i << endl;
             double after_cost = do_action(i, lib_file, cost_exe, temp_dic, timing_dic);
             temp_dic = record;
@@ -178,6 +186,9 @@ void lib_greedy(const string& lib_file, const string& cost_exe, double& best_cos
         }
         if (!has_better) break;
         else {
+            if (best_action%2==0) myArray.push_back(best_action+1);
+            else myArray.push_back(best_action-1);
+            cout << "best action: " << best_action << endl;
             cout << do_action(best_action, lib_file, cost_exe, record, record2) << endl;
             write_genlib("contest.genlib", record, record2);
             cost_cal(lib_file, cost_exe, output);
