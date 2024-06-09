@@ -1,5 +1,5 @@
-#ifndef CORE_H
-#define CORE_H
+#ifndef CMD_SA_H
+#define CMD_SA_H
 
 #include <cmath>
 #include <ctime>
@@ -21,9 +21,10 @@ enum class INST{
     DC2          = 7,
     BALANCE      = 8,
 };
+
 static const std::string inst_strings[] = {"rw", "rwz", "rf", "rfz", "rs",
  "orchestrate", "ifraig", "dc2", "balance"};
 
-INST get_action();
-vector<string> simulated_annealing(const string&, const string&, double&, const string&);
+INST get_inst();
+vector<string> cmd_simulated_annealing(const string&, const string&, double&, const string&);
 #endif

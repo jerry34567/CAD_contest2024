@@ -1,5 +1,5 @@
 PKGFLAG   = $(DEBUG_FLAG)
-EXTHDRS   = cmd_sa.h lib_sa.h
+EXTHDRS   = cost.h
 
 include ../Makefile.in
 include ../Makefile.lib

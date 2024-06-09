@@ -1,5 +1,5 @@
-SRCPKGS  = util abc SA parser design_compiler
-LIBPKGS  = util abc SA parser design_compiler
+SRCPKGS  = util abc cost SA parser design_compiler greedy
+LIBPKGS  = util abc cost SA parser design_compiler greedy
 
 MAIN     = main
 
