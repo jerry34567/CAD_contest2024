@@ -13,6 +13,7 @@
 #include "dc.h"
 #include <chrono>
 #include "lib_greedy.h"
+#include "gradient.h"
 
 using namespace std;
 
@@ -23,6 +24,8 @@ void dc_exe(const string& write_verilog, const string& library, const string& ou
 
     ifstream temp_file("syn_design.v");
     if (!temp_file.is_open()) return;
+    else temp_file.close();
+
     abccmd("read -m syn_design.v");
     abccmd("mfs3 -ae -I 4 -O 2");
     abccmd("mfs3 -ae -I 4 -O 2");
@@ -38,7 +41,10 @@ void dc_exe(const string& write_verilog, const string& library, const string& ou
     cout << "design_compiler: " << dc_cost << endl;
 }
 
-void script_exe(const string& write_verilog, const string& library, const string& output, const string& cost_function, double& best_cost) {
+void script_exe(const string& write_verilog, const string& library, const string& output, const string& cost_function, double& best_cost, bool is_buffer, bool& buf_flag) {
+    if (is_buffer) {
+        abccmd("read ./contest_liberty.lib");
+    }
     abccmd("backup");
     abccmd("strash");
     abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
@@ -49,16 +55,31 @@ void script_exe(const string& write_verilog, const string& library, const string
     abccmd("&put");
     abccmd("mfs3 -ae -I 4 -O 2");
     abccmd("mfs3 -ae -I 4 -O 2");
+
+    if (is_buffer) {
+        abccmd("topo");
+        abccmd("buffer -N 2");
+    }
+
     abccmd("write_verilog temp.v");
 
     string args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
     string temp = exec(cost_function, args);
     double temp_cost = extractCost(temp);
     if (temp_cost < best_cost) {
+        if (is_buffer) {
+            buf_flag = true;
+        }
+        else {
+            buf_flag = false;
+        }
         abccmd(write_verilog);
         best_cost = temp_cost;
     }
     abccmd("restore");
+    if (is_buffer) {
+        abccmd("read ./contest.genlib");
+    }
     cout << "script: " << temp_cost << endl;
 }
 
@@ -73,6 +94,7 @@ int main(int argc, char** argv) {
     string output;
     string temp;
     string args;
+    bool buf_flag;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -110,7 +132,8 @@ int main(int argc, char** argv) {
     abccmd(read_design);
 
     ///// for abc script /////////
-    script_exe(write_verilog, library, output, cost_function, best_cost);
+    script_exe(write_verilog, library, output, cost_function, best_cost, 1, buf_flag);
+    script_exe(write_verilog, library, output, cost_function, best_cost, 0, buf_flag);
     //////////////////////////////
 
     
@@ -119,42 +142,11 @@ int main(int argc, char** argv) {
     vector<string> actions;
     bool SA_flag = false;
 
-    ///// lib_SA //////
-    // abccmd("strash");
-    // abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
-    // abccmd("orchestrate -N 3");
-    // for (int i = 0; i < 10; i++) {
-    //     cout << "i: " << i << endl;
-    //     lib_simulated_annealing(library, cost_function, best_cost, output, gate_cost_dic, gate_timing_dic);
-
-    //     if (record > best_cost) {
-    //         record = best_cost;
-    //         cout << best_cost << endl;
-    //     }
-    //     else {
-    //         best_cost = record;
-    //     }
-    // }
-    ////////////////////
-
-    ////// lib_greedy /////
-    abccmd("strash");
-    abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
-    abccmd("orchestrate -N 3");
-    lib_greedy(library, cost_function, best_cost, output, gate_cost_dic, gate_timing_dic);
-    if (record > best_cost) {
-        record = best_cost;
-        cout << best_cost << endl;
-    }
-    else {
-        best_cost = record;
-    }
-    ////////////////////
 
     //// cmd_SA /////
     for (int i = 0; i < 10; i++) {
         cout << "i: " << i << endl;
-        actions = cmd_simulated_annealing(library, cost_function, best_cost, output);
+        actions = cmd_simulated_annealing(library, cost_function, best_cost, output, buf_flag);
 
         if (record > best_cost) {
             SA_flag = true;
@@ -170,26 +162,61 @@ int main(int argc, char** argv) {
     //////////////////
 
     // if put the lib greedy or lib sa after cmd_sa, should execute the code below first ///////////
-    // if (SA_flag) {
-    //     abccmd("strash");
-    //     for (int i = 0; i < best_actions.size(); i++) {
-    //         abccmd(best_actions[i]);
-    //     }
-    // }
-    // else {
-    //     abccmd("strash");
-    //     abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
-    //     abccmd("orchestrate -N 3");
-    // }
+    if (SA_flag) {
+        cout << "SA!!!" << endl;
+        abccmd("strash");
+        for (int i = 0; i < best_actions.size(); i++) {
+            abccmd(best_actions[i]);
+        }
+    }
+    else {
+        abccmd("strash");
+        abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
+        abccmd("orchestrate -N 3");
+    }
     ///////////////////////
 
+    ///// lib_SA //////
+    for (int i = 0; i < 10; i++) {
+        cout << "i: " << i << endl;
+        lib_simulated_annealing(library, cost_function, best_cost, output, gate_cost_dic, gate_timing_dic, buf_flag);
+
+        if (record > best_cost) {
+            record = best_cost;
+            cout << best_cost << endl;
+        }
+        else {
+            best_cost = record;
+        }
+    }
+    ////////////////////
+
+    ////// lib_greedy /////
+    lib_greedy(library, cost_function, best_cost, output, gate_cost_dic, gate_timing_dic, buf_flag);
+    if (record > best_cost) {
+        record = best_cost;
+        cout << best_cost << endl;
+    }
+    else {
+        best_cost = record;
+    }
+    ////////////////////
+
+    /////// lib gradient /////
+    // abccmd("strash");
+    // abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
+    // abccmd("orchestrate -N 3");
+    // double learning_rate = 0.1; // 學習率
+    // int iterations = 100;
+    // gradientDescent(learning_rate, iterations, gate_cost_dic, gate_timing_dic, library, cost_function, output, best_cost);
+    //////////////////////////
 
     ///// dc after revising genlib /////
-    // dc_exe(write_verilog, library, output, cost_function, best_cost);
+    dc_exe(write_verilog, library, output, cost_function, best_cost);
 
 
     cout << "best_cost: " << best_cost << endl;
-    for (int i = 0; i < actions.size(); i++) {
+    for (int i = 0; i < best_actions.size(); i++) {
         cout << best_actions[i] << endl;
     }
     auto end = std::chrono::high_resolution_clock::now();

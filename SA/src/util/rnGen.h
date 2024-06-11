@@ -43,5 +43,37 @@ class RandomNumGen2
       }
 };
 
+
+#define NUMBER1  3716960521u
+#define NUMBER2  2174103536u
+
+class my_RandomNumGen
+{
+   public:
+      my_RandomNumGen(unsigned seed) {
+         My_Random(1);
+         for(int i = 0; i < seed; i++) {
+            My_Random(0);
+         }
+      }
+      const unsigned operator() () {
+         return My_Random(0);
+      }
+   private:
+      unsigned My_Random( int fReset )
+      {
+         static unsigned int m_z = NUMBER1;
+         static unsigned int m_w = NUMBER2;
+         if ( fReset )
+         {
+            m_z = NUMBER1;
+            m_w = NUMBER2;
+         }
+         m_z = 36969 * (m_z & 65535) + (m_z >> 16);
+         m_w = 18000 * (m_w & 65535) + (m_w >> 16);
+         return (m_z << 16) + m_w;
+      }
+};
+
 #endif // RN_GEN_H
 

@@ -34,7 +34,7 @@ void initDictionary3();
 void write_genlib(const string&, map<string, pair<string, float>>&, map<string, vector<float>>&);
 void write_syntcl(const string&, const string&);
 void initTimingDictionary(map<string, vector<float>>&);
-void write_liberty(map<string, pair<string, float>>&);
+void write_liberty(const string&, map<string, pair<string, float>>&);
 int parser(const string&, const string&, const string&, map<string, pair<string, float>>&, map<string, vector<float>>&);
 
 

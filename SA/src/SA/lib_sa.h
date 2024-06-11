@@ -62,6 +62,6 @@ enum class ACTION{
     BUF_SUB_ST   = 47
 };
 
-ACTION get_action();
-void lib_simulated_annealing(const string&, const string&, double&, const string&, map<string, pair<string, float>>&, map<string, vector<float>>&);
+ACTION get_action(bool);
+void lib_simulated_annealing(const string&, const string&, double&, const string&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
 #endif

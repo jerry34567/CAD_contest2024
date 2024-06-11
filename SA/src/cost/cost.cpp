@@ -36,10 +36,10 @@ double cost_func(double cur_cost, double orig_cost){
 double cost_diff(double orginal_cost, double after_cost, double init_cost) {
     double cost = cost_func(after_cost, init_cost) - cost_func(orginal_cost, init_cost);
     // cout << cost << endl;
-    return 40000*cost;
+    return 50000*cost;
 }
 
-double cost_cal(const string& lib_file, const string& cost_exe, const string& output_file) {
+double cost_cal(const string& lib_file, const string& cost_exe, const string& output_file, bool buf_flag) {
     abccmd("backup");
     abccmd("&get -n");
     abccmd("&dch -f");
@@ -47,6 +47,10 @@ double cost_cal(const string& lib_file, const string& cost_exe, const string& ou
     abccmd("&put");
     abccmd("mfs3 -ae -I 4 -O 2");
     abccmd("mfs3 -ae -I 4 -O 2");
+    if (buf_flag) {
+        abccmd("topo");
+        abccmd("buffer -N 2");
+    }
     string write_verilog = "write_verilog ";
     write_verilog += output_file;
     abccmd(write_verilog);

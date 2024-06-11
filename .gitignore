@@ -60,7 +60,7 @@ cadcontest
 *.sh
 
 # source file
-abc.source
+*.source
 
 # tcl file
 *.tcl

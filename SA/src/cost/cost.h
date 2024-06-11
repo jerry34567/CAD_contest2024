@@ -14,6 +14,6 @@ string exec(const string& cmd, const string& args);
 float extractCost(const string& output);
 double cost_func(double, double);
 double cost_diff(double, double, double);
-double cost_cal(const string&, const string&, const string&);
+double cost_cal(const string&, const string&, const string&, bool);
 
 #endif

@@ -2,15 +2,19 @@
 #include "util.h"
 
 
-extern RandomNumGen  rnGen;
+extern my_RandomNumGen  Rand;
 
-ACTION get_action(){
-    int result = rnGen(64); // number of action
+ACTION get_action(bool buf_flag){
+    int result;
+    if (buf_flag)
+        result = Rand() % 16;
+    else
+        result = Rand() & 63;
     return  static_cast<ACTION>(result % 48);
 }
 
-void lib_simulated_annealing(const string& lib_file, const string& cost_exe, double& best_cost, const string& output, map<string, pair<string, float>>& gate_cost_dic, map<string, vector<float>>& gate_timing_dic){
-    double init_cost = cost_cal(lib_file, cost_exe, "temp.v");
+void lib_simulated_annealing(const string& lib_file, const string& cost_exe, double& best_cost, const string& output, map<string, pair<string, float>>& gate_cost_dic, map<string, vector<float>>& gate_timing_dic, bool buf_flag){
+    double init_cost = cost_cal(lib_file, cost_exe, "temp.v", buf_flag);
     map<string, pair<string, float>> temp_dic = gate_cost_dic;
     map<string, vector<float>> timing_dic = gate_timing_dic;
     map<string, pair<string, float>> record;
@@ -25,7 +29,7 @@ void lib_simulated_annealing(const string& lib_file, const string& cost_exe, dou
     while(T > T_low){
         record = temp_dic;
         record2 = timing_dic;
-        ACTION action = get_action();
+        ACTION action = get_action(buf_flag);
         switch(action){
             case ACTION::AND_ADD:
                 temp_dic["and"].second *= 1.1;
@@ -173,8 +177,12 @@ void lib_simulated_annealing(const string& lib_file, const string& cost_exe, dou
             break;
         }
         write_genlib("temp.genlib", temp_dic, timing_dic);
-        abccmd("read ./temp.genlib");
-        double after_cost = cost_cal(lib_file, cost_exe, "temp.v");
+        write_liberty("temp_liberty.lib", temp_dic);
+        if (buf_flag)
+            abccmd("read ./temp_liberty.lib");
+        else
+            abccmd("read ./temp.genlib");
+        double after_cost = cost_cal(lib_file, cost_exe, "temp.v", buf_flag);
         double diff = cost_diff(orig_cost, after_cost, init_cost);
         // std::cout << "cost prob:" << exp(-diff / T)  << "\n"; 
         double rand = (double(rnGen(INT32_MAX)) / double(INT32_MAX));
@@ -183,9 +191,9 @@ void lib_simulated_annealing(const string& lib_file, const string& cost_exe, dou
             // std::cout << "Replace! cost (orig/after): " << orig_cost << "  " << after_cost << "\n"; 
             orig_cost = after_cost;
             if (orig_cost < best_cost) {
-                cost_cal(lib_file, cost_exe, output);
+                cost_cal(lib_file, cost_exe, output, buf_flag);
                 write_genlib("./contest.genlib", temp_dic, timing_dic);
-                write_liberty(temp_dic);
+                write_liberty("./contest_liberty.lib", temp_dic);
                 gate_cost_dic = temp_dic;
                 gate_timing_dic = timing_dic;
                 // cout << "genlib replace!!!!!" << endl;
@@ -200,5 +208,8 @@ void lib_simulated_annealing(const string& lib_file, const string& cost_exe, dou
         if(T>200 && r<=0.95) r += 0.01;
         else if(r>=0.85) r -= 0.01;
     }
-    abccmd("read ./contest.genlib");
+    if (buf_flag)
+        abccmd("read ./contest_liberty.lib");
+    else
+        abccmd("read ./contest.genlib");
 }

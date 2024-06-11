@@ -1,9 +1,30 @@
 #include "lib_greedy.h"
 #include "util.h"
-#include <vector>
-#include <algorithm>
 
-double do_action(int i, const string& lib_file, const string& cost_exe, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic) {
+void print_temp(const std::map<std::string, std::pair<std::string, float>>& temp_dic) {
+    // 打印地圖內容
+    for (const auto& item : temp_dic) {
+        std::cout << std::left << std::setw(15) << item.first
+                  << std::left << std::setw(15) << item.second.first
+                  << std::left << std::setw(15) << item.second.second << std::endl;
+    }
+}
+
+void print_timing(const std::map<std::string, std::vector<float>>& timing_dic) {
+
+    // 打印地圖內容
+    for (const auto& item : timing_dic) {
+        std::cout << std::left << std::setw(15) << item.first;
+        
+        // 打印對應的浮點數向量
+        for (const auto& val : item.second) {
+            std::cout << val << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+double do_action(int i, const string& lib_file, const string& cost_exe, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic, bool buf_flag) {
     switch(i){
         case 0:
             temp_dic["and"].second *= 1.1;
@@ -151,15 +172,23 @@ double do_action(int i, const string& lib_file, const string& cost_exe, map<stri
         break;
     }
     write_genlib("temp.genlib", temp_dic, timing_dic);
-    abccmd("read ./temp.genlib");
-    return cost_cal(lib_file, cost_exe, "temp.v");
+    write_liberty("temp_liberty.lib", temp_dic);
+    if (buf_flag) {
+        abccmd("read ./temp_liberty.lib");
+    }
+    else {
+        abccmd("read ./temp.genlib");
+    }
+    return cost_cal(lib_file, cost_exe, "temp.v", buf_flag);
     
 }
 
-vector<int> myArray;
+bool sortbysec(const pair<int,double> &a, const pair<int,double> &b) {
+    return (a.second < b.second);
+}
 
-void lib_greedy(const string& lib_file, const string& cost_exe, double& best_cost, const string& output, const map<string, pair<string, float>>& gate_cost_dic, const map<string, vector<float>>& gate_timing_dic){
-    double orig_cost = cost_cal(lib_file, cost_exe, "temp.v");
+void lib_greedy(const string& lib_file, const string& cost_exe, double& best_cost, const string& output, const map<string, pair<string, float>>& gate_cost_dic, const map<string, vector<float>>& gate_timing_dic, bool buf_flag){
+    double orig_cost = cost_cal(lib_file, cost_exe, "temp.v", buf_flag);
     map<string, pair<string, float>> temp_dic = gate_cost_dic;
     map<string, vector<float>> timing_dic = gate_timing_dic;
     map<string, pair<string, float>> record = temp_dic;
@@ -169,15 +198,20 @@ void lib_greedy(const string& lib_file, const string& cost_exe, double& best_cos
     while(true){
         int best_action;
         bool has_better = false;
+        vector<pair<int, double>> improve_actions;
+        double record_cost = cur_best_cost;
         for (int i = 0; i < 48; i++) {
-            if (find(myArray.begin(), myArray.end(), i) != myArray.end()) {
-                cout << i << " is in the array." << std::endl;
-                continue;
-            }
             cout << "I: " << i << endl;
-            double after_cost = do_action(i, lib_file, cost_exe, temp_dic, timing_dic);
+            double after_cost = do_action(i, lib_file, cost_exe, temp_dic, timing_dic, buf_flag);
+            cout << " cur_best: " << cur_best_cost << " this: " << after_cost << endl;
+            // print_temp(temp_dic);
+            // print_timing(timing_dic);
+            // cout << endl;
             temp_dic = record;
             timing_dic = record2;
+            if (after_cost < record_cost) {
+                improve_actions.push_back(make_pair(i, after_cost));
+            }
             if (after_cost < cur_best_cost) {
                 cur_best_cost = after_cost;
                 best_action = i;
@@ -186,15 +220,38 @@ void lib_greedy(const string& lib_file, const string& cost_exe, double& best_cos
         }
         if (!has_better) break;
         else {
-            if (best_action%2==0) myArray.push_back(best_action+1);
-            else myArray.push_back(best_action-1);
-            cout << "best action: " << best_action << endl;
-            cout << do_action(best_action, lib_file, cost_exe, record, record2) << endl;
+            // cout << do_action(best_action, lib_file, cost_exe, record, record2, buf_flag) << endl;
+            sort(improve_actions.begin(), improve_actions.end(), sortbysec);
+            double temp_best_cost = record_cost;
+            double times = 0;
+            for (int i = 0; i < improve_actions.size() && i < 3; i++) {
+                cout << improve_actions[i].first << endl;
+                double cost = do_action(improve_actions[i].first, lib_file, cost_exe, temp_dic, timing_dic, buf_flag);
+                if (cost < temp_best_cost) {
+                    temp_best_cost = cost;
+                    times = i;
+                }
+                if (cost < cur_best_cost) {
+                    cur_best_cost = cost;
+                }
+            }
+            temp_dic = record;
+            timing_dic = record2;
+            for (int i = 0; i <= times; i++) {
+                cout << do_action(improve_actions[i].first, lib_file, cost_exe, record, record2, buf_flag) << endl;
+            }
             write_genlib("contest.genlib", record, record2);
-            cost_cal(lib_file, cost_exe, output);
-            write_liberty(record);
+            write_liberty("contest_liberty.lib", record);
+            cost_cal(lib_file, cost_exe, output, buf_flag);
+            temp_dic = record;
+            timing_dic = record2;
         }
     }
     best_cost = cur_best_cost;
-    abccmd("read ./contest.genlib");
+    if (buf_flag) {
+        abccmd("read ./contest_liberty.lib");
+    }
+    else {
+        abccmd("read ./contest.genlib");
+    }
 }

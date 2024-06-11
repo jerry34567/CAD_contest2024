@@ -131,7 +131,6 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     string genlib_file_name = "./contest.genlib";
     string verilog_file_name = verilog_file;
     string module_name = extractModuleName(verilog_file_name);
-    cout << "module:   " << module_name << endl;
 
     // Read JSON file
     ifstream readfile(input_file_name);
@@ -197,18 +196,13 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
 
 
     // write contest_liberty.lib
-    write_liberty(temp_dic);
+    write_liberty("./contest_liberty.lib", temp_dic);
 
     return 0;
 }
 
-// int main() {
-//     parser("./release/lib/lib1.json", "./release/netlists/design6.v", "./release/cost_estimators/cost_estimator_1");
-//     return 0;
-// }
-
-void write_liberty(map<string, pair<string, float>>& temp_dic) {
-    ofstream write_lib("contest_liberty.lib");
+void write_liberty(const string& output_file_name, map<string, pair<string, float>>& temp_dic) {
+    ofstream write_lib(output_file_name);
     if (!write_lib.is_open()) {
         cerr << "can NOT open file!" << endl;
     }

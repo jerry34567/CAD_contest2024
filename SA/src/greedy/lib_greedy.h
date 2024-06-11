@@ -8,7 +8,7 @@
 
 using namespace std;
 
-double do_action(int, const string&, const string&, map<string, pair<string, float>>&, map<string, vector<float>>&);
-void lib_greedy(const string&, const string&, double&, const string&, const map<string, pair<string, float>>&, const map<string, vector<float>>&);
+double do_action(int, const string&, const string&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
+void lib_greedy(const string&, const string&, double&, const string&, const map<string, pair<string, float>>&, const map<string, vector<float>>&, bool);
 
 #endif
