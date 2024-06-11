@@ -18,6 +18,7 @@ vector<string> cmd_simulated_annealing(const string& lib_file, const string& cos
     double orig_cost = init_cost;
     vector<string> best_action;
     vector<string> cur_action;
+    cur_action.push_back("strash");
 
     // parameters
     float T = 500;

@@ -19,7 +19,7 @@ using namespace std;
 
 extern AbcMgr* abcMgr;
 
-void dc_exe(const string& write_verilog, const string& library, const string& output, const string& cost_function, double& best_cost) {
+void dc_exe(const string& write_verilog, const string& library, const string& output, const string& cost_function, double& best_cost, bool high_effort) {
     dc_gen();
 
     ifstream temp_file("syn_design.v");
@@ -27,8 +27,17 @@ void dc_exe(const string& write_verilog, const string& library, const string& ou
     else temp_file.close();
 
     abccmd("read -m syn_design.v");
-    abccmd("mfs3 -ae -I 4 -O 2");
-    abccmd("mfs3 -ae -I 4 -O 2");
+
+    if (high_effort) {
+        abccmd("mfs3 -ae -I 5 -O 5 -R 4 -E 1000");
+        abccmd("mfs3 -aer -I 5 -O 5 -R 4 -E 1000");
+    }
+    else {
+        abccmd("mfs3 -ae -I 4 -O 2");
+        abccmd("mfs3 -aer -I 4 -O 2");
+    }
+    
+    
     abccmd("write_verilog temp.v");
 
     string args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
@@ -54,7 +63,7 @@ void script_exe(const string& write_verilog, const string& library, const string
     abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
     abccmd("&put");
     abccmd("mfs3 -ae -I 4 -O 2");
-    abccmd("mfs3 -ae -I 4 -O 2");
+    abccmd("mfs3 -aer -I 4 -O 2");
 
     if (is_buffer) {
         abccmd("topo");
@@ -124,7 +133,7 @@ int main(int argc, char** argv) {
     write_verilog += output; 
 
     ///// for design compiler ///////
-    dc_exe(write_verilog, library, output, cost_function, best_cost);
+    dc_exe(write_verilog, library, output, cost_function, best_cost, 0);
     /////////////////////////////////
 
     string read_design = "read ";
@@ -139,6 +148,9 @@ int main(int argc, char** argv) {
     
     double record = best_cost;
     vector<string> best_actions;
+    best_actions.push_back("strash");
+    best_actions.push_back("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
+    best_actions.push_back("orchestrate -N 3");
     vector<string> actions;
     bool SA_flag = false;
 
@@ -162,17 +174,8 @@ int main(int argc, char** argv) {
     //////////////////
 
     // if put the lib greedy or lib sa after cmd_sa, should execute the code below first ///////////
-    if (SA_flag) {
-        cout << "SA!!!" << endl;
-        abccmd("strash");
-        for (int i = 0; i < best_actions.size(); i++) {
-            abccmd(best_actions[i]);
-        }
-    }
-    else {
-        abccmd("strash");
-        abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
-        abccmd("orchestrate -N 3");
+    for (int i = 0; i < best_actions.size(); i++) {
+        abccmd(best_actions[i]);
     }
     ///////////////////////
 
@@ -211,8 +214,35 @@ int main(int argc, char** argv) {
     // gradientDescent(learning_rate, iterations, gate_cost_dic, gate_timing_dic, library, cost_function, output, best_cost);
     //////////////////////////
 
-    ///// dc after revising genlib /////
-    dc_exe(write_verilog, library, output, cost_function, best_cost);
+    ////// high effort //////
+    abccmd(read_design);
+    for (int i = 0; i < best_actions.size(); i++) {
+        abccmd(best_actions[i]);
+    }
+    abccmd("&get -n");
+    abccmd("&dch -f");
+    abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
+    abccmd("&put");
+    abccmd("mfs3 -ae -I 5 -O 5 -R 4 -E 1000");
+    abccmd("mfs3 -aer -I 5 -O 5 -R 4 -E 1000");
+
+    if (buf_flag) {
+        abccmd("topo");
+        abccmd("buffer -N 2");
+    }
+
+    abccmd("write_verilog temp.v");
+    args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
+    temp = exec(cost_function, args);
+    double high_effort_cost = extractCost(temp);
+    cout << "high_effort_cost: " << high_effort_cost << endl;
+    if (high_effort_cost < best_cost) {
+        abccmd(write_verilog);
+        best_cost = high_effort_cost;
+    }
+
+    ///// dc after revising lib /////
+    dc_exe(write_verilog, library, output, cost_function, best_cost, 1);
 
 
     cout << "best_cost: " << best_cost << endl;
