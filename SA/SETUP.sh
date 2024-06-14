@@ -3,15 +3,15 @@
 mkdir lib
 mkdir include
 mkdir bin
-mkdir testcases
+
 # go to engine/
 cd engine/
 
 # install "abc"
 ./abc.script
 
-# back to lsv_final/
+# back to SA/
 cd ../../
 
-# make approximate
+# make cadcontest
 make

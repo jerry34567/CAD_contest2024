@@ -19,8 +19,8 @@ void lib_simulated_annealing(const string& lib_file, const string& cost_exe, dou
     map<string, vector<float>> timing_dic = gate_timing_dic;
     map<string, pair<string, float>> record;
     map<string, vector<float>> record2;
-
     double orig_cost = init_cost;
+    cout << "orig: " << orig_cost << endl;
 
     // parameters
     float T = 500;

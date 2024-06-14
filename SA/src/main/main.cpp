@@ -34,13 +34,13 @@ void dc_exe(const string& write_verilog, const string& library, const string& ou
     }
     else {
         abccmd("mfs3 -ae -I 4 -O 2");
-        abccmd("mfs3 -aer -I 4 -O 2");
+        // abccmd("mfs3 -aer -I 4 -O 2");
     }
     
     
-    abccmd("write_verilog temp.v");
+    abccmd("write_verilog dc_syn.v");
 
-    string args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
+    string args = "-library " + library + " -netlist " + "dc_syn.v" + " -output temp.out";
     string temp = exec(cost_function, args);
     double dc_cost = extractCost(temp);
     if (dc_cost < best_cost) {
@@ -54,6 +54,9 @@ void script_exe(const string& write_verilog, const string& library, const string
     if (is_buffer) {
         abccmd("read ./contest_liberty.lib");
     }
+    else {
+        abccmd("read ./contest.genlib");
+    }
     abccmd("backup");
     abccmd("strash");
     abccmd("b -l; resub -K 6 -l; rewrite -l; resub -K 6 -N 2 -l; refactor -l; resub -K 8 -l; b -l; resub -K 8 -N 2 -l; rewrite -l; resub -K 10 -l; rewrite -z -l; resub -K 10 -N 2 -l; b -l; resub -K 12 -l; refactor -z -l; resub -K 12 -N 2 -l; rewrite -z -l; b -l");
@@ -63,7 +66,7 @@ void script_exe(const string& write_verilog, const string& library, const string
     abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
     abccmd("&put");
     abccmd("mfs3 -ae -I 4 -O 2");
-    abccmd("mfs3 -aer -I 4 -O 2");
+    // abccmd("mfs3 -aer -I 4 -O 2");
 
     if (is_buffer) {
         abccmd("topo");
@@ -86,9 +89,6 @@ void script_exe(const string& write_verilog, const string& library, const string
         best_cost = temp_cost;
     }
     abccmd("restore");
-    if (is_buffer) {
-        abccmd("read ./contest.genlib");
-    }
     cout << "script: " << temp_cost << endl;
 }
 
@@ -132,20 +132,35 @@ int main(int argc, char** argv) {
     string write_verilog = "write_verilog ";
     write_verilog += output; 
 
-    ///// for design compiler ///////
-    dc_exe(write_verilog, library, output, cost_function, best_cost, 0);
-    /////////////////////////////////
-
     string read_design = "read ";
     read_design += netlist;
-    abccmd(read_design);
 
+    abccmd(read_design);
     ///// for abc script /////////
     script_exe(write_verilog, library, output, cost_function, best_cost, 1, buf_flag);
     script_exe(write_verilog, library, output, cost_function, best_cost, 0, buf_flag);
     //////////////////////////////
-
     
+    ///// for design compiler ///////
+    dc_exe(write_verilog, library, output, cost_function, best_cost, 0);
+    /////////////////////////////////
+    abccmd("read -m dc_syn.v");
+    double dc_then_abcmap = cost_cal(library, cost_function, "temp.v", buf_flag);
+    if (dc_then_abcmap <= best_cost) {
+        read_design = "read -m dc_syn.v";
+        best_cost = dc_then_abcmap;
+        cout << best_cost << endl;
+    }
+
+    abccmd(read_design);
+
+    if (buf_flag) {
+        abccmd("read ./contest_liberty.lib");
+    }
+    else {
+        abccmd("read ./contest.genlib");
+    }
+
     double record = best_cost;
     vector<string> best_actions;
     best_actions.push_back("strash");
@@ -249,6 +264,18 @@ int main(int argc, char** argv) {
     for (int i = 0; i < best_actions.size(); i++) {
         cout << best_actions[i] << endl;
     }
+
+    // verify correctness
+    read_design = "read ";
+    read_design += netlist;
+    abccmd(read_design);
+    abccmd("strash");
+    abccmd("write_aiger temp.aig");
+    read_design = "read -m ";
+    read_design += output;
+    abccmd("write_aiger temp2.aig");
+    abccmd("cec temp.aig temp2.aig");
+    
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> duration = end - start;
     std::cout << "Time taken: " << duration.count() << " seconds" << std::endl;

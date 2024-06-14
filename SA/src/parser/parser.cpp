@@ -113,14 +113,14 @@ void write_genlib(const string& output_file_name, map<string, pair<string, float
     for (auto& cell_data : temp_dic) {
         writefile << "GATE " << cell_data.second.first << "\t";
         if (cell_data.second.second > 100000)
-            writefile << 10*max_area << "\t";
+            writefile << 8*max_area << "\t";
         else
             writefile << cell_data.second.second << "\t";
         writefile << dictionary[cell_data.first] << "\t";
         writefile << "PIN * " << dictionary2[cell_data.first] << " 1 999 ";
         writefile << timing_dic[cell_data.first][0] << " " << timing_dic[cell_data.first][1] << " " << timing_dic[cell_data.first][0] << " " << timing_dic[cell_data.first][1] << "\n";
     }
-    writefile << "GATE zero\t0\tY=CONST0;\nGATE one\t0\tY=CONST1;\n";
+    writefile << "GATE zero\t" << max_area << "\tY=CONST0;\nGATE one\t" << max_area << "\tY=CONST1;\n";
     writefile.close();
 }
 

@@ -24,6 +24,7 @@ float extractCost(const string& output) {
             }
         }
     }
+    return __FLT_MAX__;
     throw runtime_error("Cost not found in output");
 }
 
@@ -46,7 +47,7 @@ double cost_cal(const string& lib_file, const string& cost_exe, const string& ou
     abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
     abccmd("&put");
     abccmd("mfs3 -ae -I 4 -O 2");
-    abccmd("mfs3 -ae -I 4 -O 2");
+    // abccmd("mfs3 -ae -I 4 -O 2");
     if (buf_flag) {
         abccmd("topo");
         abccmd("buffer -N 2");

@@ -9,11 +9,12 @@ INST get_inst(){
     return  static_cast<INST>(result);
 }
 
-vector<string> cmd_simulated_annealing(const string& lib_file, const string& cost_exe, double& best_cost, const string& output, bool buf_flag){
+vector<string>cmd_simulated_annealing(const string& lib_file, const string& cost_exe, double& best_cost, const string& output, bool buf_flag){
     Abc_Ntk_t* pRecord;
 
     abccmd("strash");
-    double init_cost = cost_cal(lib_file, cost_exe, output, buf_flag);
+    double init_cost = cost_cal(lib_file, cost_exe, "temp.v", buf_flag);
+    cout << "init: " << init_cost << endl;
 
     double orig_cost = init_cost;
     vector<string> best_action;
