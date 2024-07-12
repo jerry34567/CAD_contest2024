@@ -18,10 +18,13 @@ enum class INST{
     IFRAIG       = 4,
     DC2          = 5,
     BALANCE      = 6,
+    SHARE        = 7
 };
 
 static const std::string inst_strings[] = {"rw", "rf", "rs", "orchestrate", "ifraig", "dc2", "balance"};
 
 INST get_inst();
-vector<string> cmd_simulated_annealing(const string&, const string&, double&, const string&, bool);
+vector<string> cmd_simulated_annealing(double&, bool);
+vector<string> cmd_simulated_annealing_using_map(double&, bool);
+vector<string> cmd_simulated_annealing_using_turtle(double&, bool);
 #endif

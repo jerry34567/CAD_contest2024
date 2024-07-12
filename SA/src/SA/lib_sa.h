@@ -63,5 +63,6 @@ enum class ACTION{
 };
 
 ACTION get_action(bool);
-void lib_simulated_annealing(const string&, const string&, double&, const string&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
+void lib_simulated_annealing(double&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
+void lib_simulated_annealing_using_turtle(double&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
 #endif

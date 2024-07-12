@@ -25,7 +25,7 @@ using namespace std;
 
 RandomNumGen  rnGen(910314);  // use random seed = 0
 MyUsage       myUsage;
-my_RandomNumGen Rand(0);
+my_RandomNumGen Rand(910314);
 
 //----------------------------------------------------------------------
 //    Global functions in util

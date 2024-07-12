@@ -1,4 +1,8 @@
 #include "cost.h"
+#include "gvAbcSuper.h"
+
+CostMgr* costMgr;
+extern AbcSuperMgr* abcSuperMgr;
 
 string exec(const string& cmd, const string& args) {
     array<char, 128> buffer;
@@ -40,7 +44,9 @@ double cost_diff(double orginal_cost, double after_cost, double init_cost) {
     return 50000*cost;
 }
 
-double cost_cal(const string& lib_file, const string& cost_exe, const string& output_file, bool buf_flag) {
+
+
+double CostMgr::cost_cal(bool use_output, bool buf_flag) {
     abccmd("backup");
     abccmd("&get -n");
     abccmd("&dch -f");
@@ -53,10 +59,71 @@ double cost_cal(const string& lib_file, const string& cost_exe, const string& ou
         abccmd("buffer -N 2");
     }
     string write_verilog = "write_verilog ";
-    write_verilog += output_file;
+    string verilog_file;
+    if (use_output) {
+        verilog_file = _output_file;
+    }
+    else {
+        verilog_file = _temp_file;
+    }
+    write_verilog += verilog_file;
     abccmd(write_verilog);
     abccmd("restore");
-    string args = "-library " + lib_file + " -netlist " + output_file + " -output temp.out";
-    string output = exec(cost_exe, args);
+    // Abc_replace_super(verilog_file);
+    string args = "-library " + _lib_file + " -netlist " + verilog_file + " -output temp.out";
+    string output = exec(_cost_exe, args);
     return extractCost(output);
+}
+
+
+double CostMgr::cost_cal_use_map(bool use_output, bool buf_flag) {
+    abccmd("backup");
+    abccmd("dch -f");
+    abccmd("map -asf");
+    abccmd("mfs3 -ae -I 4 -O 2");
+    // abccmd("mfs3 -ae -I 4 -O 2");
+    if (buf_flag) {
+        abccmd("topo");
+        abccmd("buffer -N 2");
+    }
+    string write_verilog = "write_verilog ";
+    string verilog_file;
+    if (use_output) {
+        verilog_file = _output_file;
+    }
+    else {
+        verilog_file = _temp_file;
+    }
+    write_verilog += verilog_file;
+    abccmd(write_verilog);
+    abccmd("restore");
+    // Abc_replace_super(verilog_file);
+    string args = "-library " + _lib_file + " -netlist " + verilog_file + " -output temp.out";
+    string output = exec(_cost_exe, args);
+    return extractCost(output);
+}
+
+double CostMgr::cost_cal_use_turtle(bool use_output, bool buf_flag, bool use_temp_lib) {
+    abccmd("write_aiger temp.aig");
+    string verilog_file;
+    if (use_output) {
+        verilog_file = _output_file;
+    }
+    else {
+        verilog_file = _temp_file;
+    }
+
+    string command;
+    if (use_temp_lib)
+        command = "./test " + verilog_file + " ./temp.genlib ./temp.super"; 
+    else
+        command = "./test " + verilog_file + " ./contest.genlib ./contest.super"; 
+
+    int result = system(command.c_str());
+
+    string args = "-library " + _lib_file + " -netlist " + verilog_file + " -output temp.out";
+    string output = exec(_cost_exe, args);
+    float temp = extractCost(output);
+    if (temp == 0) return 10000;
+    return temp;
 }

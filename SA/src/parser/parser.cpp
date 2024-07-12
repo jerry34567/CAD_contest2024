@@ -1,4 +1,9 @@
 #include "parser.h"
+#include "cost.h"
+#include "gvAbcSuper.h"
+
+extern CostMgr* costMgr;
+extern AbcSuperMgr* abcSuperMgr;
 
 unordered_map<string, string> dictionary;
 unordered_map<string, string> dictionary2;
@@ -100,7 +105,7 @@ void write_syntcl(const string& module_name, const string& verilog_file) {
     write_syn.close();
 }
 
-void write_genlib(const string& output_file_name, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic) {
+void write_genlib(const string& output_file_name, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic, bool is_super) {
     ofstream writefile(output_file_name);
     if (!writefile.is_open()) {
         cerr << "can NOT open file!" << endl;
@@ -121,6 +126,14 @@ void write_genlib(const string& output_file_name, map<string, pair<string, float
         writefile << timing_dic[cell_data.first][0] << " " << timing_dic[cell_data.first][1] << " " << timing_dic[cell_data.first][0] << " " << timing_dic[cell_data.first][1] << "\n";
     }
     writefile << "GATE zero\t" << max_area << "\tY=CONST0;\nGATE one\t" << max_area << "\tY=CONST1;\n";
+    
+    if (is_super)
+        for (auto& cell_data : abcSuperMgr->get_name_to_super()) {
+            writefile << "GATE " << cell_data.first << "\t";
+            writefile << cell_data.second->get_area() << "\t";
+            writefile << "Y=" << cell_data.second->get_function() << ";" << "\t";
+            writefile << "PIN * UNKNOWN 1 999 1 0 1 0\n";
+        }
     writefile.close();
 }
 
@@ -130,7 +143,7 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     string input_file_name = lib_file;
     string genlib_file_name = "./contest.genlib";
     string verilog_file_name = verilog_file;
-    string module_name = extractModuleName(verilog_file_name);
+    string module_name = costMgr->get_module_name();
 
     // Read JSON file
     ifstream readfile(input_file_name);
@@ -151,6 +164,7 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     // Analyze
     for (auto& cell_data : j["cells"]) {
         ofstream write_file("temp_file.v");
+        costMgr->add_name_to_type(cell_data["cell_name"], cell_data["cell_type"]);
         write_file << "module " << module_name << " (a, b, o);\n";
         write_file << "input a, b;\n";
         write_file << "output o;\n";
@@ -178,7 +192,7 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     }
 
     // Write genlib file
-    write_genlib(genlib_file_name, temp_dic, timing_dic);
+    write_genlib(genlib_file_name, temp_dic, timing_dic, 0);
 
 
     // write syn.tcl

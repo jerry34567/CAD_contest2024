@@ -3,6 +3,6 @@
 
 #include <cstdlib> 
 
-void dc_gen();
+void dc_gen(bool);
 
 #endif

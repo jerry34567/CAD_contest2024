@@ -28,10 +28,11 @@ extern unordered_map<string, string> dictionary;
 extern unordered_map<string, string> dictionary2;
 extern unordered_map<string, string> dictionary3;
 
+string extractModuleName(const string& filePath);
 void initDictionary();
 void initDictionary2();
 void initDictionary3();
-void write_genlib(const string&, map<string, pair<string, float>>&, map<string, vector<float>>&);
+void write_genlib(const string&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
 void write_syntcl(const string&, const string&);
 void initTimingDictionary(map<string, vector<float>>&);
 void write_liberty(const string&, map<string, pair<string, float>>&);
