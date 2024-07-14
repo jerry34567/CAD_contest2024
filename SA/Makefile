@@ -3,13 +3,13 @@ LIBPKGS  = cost SA parser abc design_compiler greedy gradient util
 
 MAIN     = main
 
-EXTLIBS	 = -lm -lz -lreadline -ltermcap -ldl -lstdc++ -lffi -lgmp
+EXTLIBS	 = -lbayesopt -lnlopt -lm -lz -lreadline -ltermcap -ldl -lstdc++ -lffi -lgmp
 SRCLIBS  = $(addprefix -l, $(LIBPKGS)) $(addprefix -l, $(ENGPKGS))
 
 
 #ENGPKGS	 += quteRTL
 #ENGPKGS	 += minisat
-ENGPKGS	 += abcc
+ENGPKGS	 += abcc bayesopt
 
 ENGSSRC	 = eng
 

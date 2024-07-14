@@ -1,0 +1,22 @@
+# bayesopt
+git clone https://github.com/rmcantin/bayesopt.git
+cd bayesopt
+
+# cmake 
+cmake .
+
+# make bayesopt and static library
+make
+
+# copy "bayesopt" static library to /our_src
+mkdir bayesopt_src; mv lib/*.a bayesopt_src;
+
+# include all hierarchical folder with only "header file" under our_src/
+echo "Copying files to bayesopt_src/ ..."
+cp -r include/* bayesopt_src/
+cp -r utils/* bayesopt_src/
+cd bayesopt_src/
+
+# go to src/eng and create symbol link
+echo "Creating softlink from engine/bayesopt/bayesopt_src to src/eng/bayesopt ...";
+cd ../../../src/eng; ln -fs ../../engine/bayesopt/bayesopt_src ./bayesopt
