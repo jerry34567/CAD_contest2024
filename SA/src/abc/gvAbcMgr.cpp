@@ -13,6 +13,7 @@ void
 AbcMgr::init() {
     Abc_Start();
     pAbc = Abc_FrameGetGlobalFrame();
+    Abc_FrameSetFlag("silentmode", "1");
 }
 
 void

@@ -18,6 +18,7 @@
 #include "gradient.h"
 #include "gvAbcSuper.h"
 #include "super_greedy.h"
+#include "cmd_sa_new.h"
 
 using namespace std;
 
@@ -192,7 +193,7 @@ int main(int argc, char** argv) {
     }
     else {
         abccmd("read ./contest.genlib");
-        abccmd("super -I 4 -L 2 ./contest.genlib");
+        abccmd("super -I 5 -L 2 ./contest.genlib");
     }
 
     double record = best_cost;
@@ -205,61 +206,29 @@ int main(int argc, char** argv) {
     best_actions.push_back("orchestrate -N 3");
     vector<string> actions;
 
+    ///// new cmd_SA need 1 ///
+    vector<string> cur_action;
+    cur_action.push_back("dc2 -b");
+    cur_action.push_back("dc2 -b -l");
+    cur_action.push_back("dc2");
+    cur_action.push_back("dc2");
+    cur_action.push_back("resub -l -K 4 -N 1");
+    cur_action.push_back("multi -m; sop; fx; st");
+    cur_action.push_back("ifraig");
+    cur_action.push_back("orchestrate -K 8 -N 2");
+    cur_action.push_back("rewrite -z");
+    cur_action.push_back("dc2 -b");
+    cur_action.push_back("balance");
+    cur_action.push_back("orchestrate -K 8 -N 3");
+    cur_action.push_back("ifraig");
+    cur_action.push_back("resub -K 16 -N 1");
+    cur_action.push_back("orchestrate -K 4 -N 2");
+    //////////////////////////
+
     // //// cmd_SA with mockturtle /////
-    for (int i = 0; i < 16; i++) {
-        cout << "i: " << i << endl;
-        actions = cmd_simulated_annealing_using_turtle(best_cost, buf_flag);
-
-        if (record > best_cost) {
-            best_actions = actions;
-            record = best_cost;
-            cout << best_cost << endl;
-        }
-        else {
-            best_cost = record;
-        }
-        abccmd(read_design);
-    }
-    // //////////////////
-
-    for (int i = 0; i < best_actions.size(); i++) {
-        abccmd(best_actions[i]);
-    }
-
-    ///// lib_SA with mockturtle //////
-    for (int i = 0; i < 16; i++) {
-        cout << "i: " << i << endl;
-        lib_simulated_annealing_using_turtle(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
-
-        if (record > best_cost) {
-            record = best_cost;
-            cout << best_cost << endl;
-        }
-        else {
-            best_cost = record;
-        }
-    }
-    // ////////////////////
-
-    // ////// lib_greedy with mockturtle /////
-    lib_greedy_using_turtle(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
-    if (record > best_cost) {
-        record = best_cost;
-        cout << best_cost << endl;
-    }
-    else {
-        best_cost = record;
-    }
-    ////////////////////
-
-
-
-
-
-    // //// cmd_SA /////
     // for (int i = 0; i < 16; i++) {
     //     cout << "i: " << i << endl;
-    //     actions = cmd_simulated_annealing(best_cost, buf_flag);
+    //     actions = cmd_simulated_annealing_using_turtle(best_cost, buf_flag);
 
     //     if (record > best_cost) {
     //         best_actions = actions;
@@ -273,16 +242,15 @@ int main(int argc, char** argv) {
     // }
     // //////////////////
 
-    // // if put the lib greedy or lib sa after cmd_sa, should execute the code below first ///////////
-    // for (int i = 0; i < best_actions.size(); i++) {
-    //     abccmd(best_actions[i]);
+    // abccmd("strash");
+    // for (int i = 0; i < cur_action.size(); i++) {
+    //     abccmd(cur_action[i]);
     // }
-    // ///////////////////////
 
-    // ///// lib_SA //////
+    // ///// lib_SA with mockturtle //////
     // for (int i = 0; i < 16; i++) {
     //     cout << "i: " << i << endl;
-    //     lib_simulated_annealing(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
+    //     lib_simulated_annealing_using_turtle(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
 
     //     if (record > best_cost) {
     //         record = best_cost;
@@ -294,8 +262,8 @@ int main(int argc, char** argv) {
     // }
     // ////////////////////
 
-    // ////// lib_greedy /////
-    // lib_greedy(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
+    // ////// lib_greedy with mockturtle /////
+    // lib_greedy_using_turtle(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
     // if (record > best_cost) {
     //     record = best_cost;
     //     cout << best_cost << endl;
@@ -304,6 +272,114 @@ int main(int argc, char** argv) {
     //     best_cost = record;
     // }
     // ////////////////////
+
+    // abccmd(read_design);
+    // //// new_cmd_SA with mockturtle /////
+    // for (int i = 0; i < 16; i++) {
+    //     cout << "i: " << i << endl;
+    //     actions = new_cmd_simulated_annealing_using_turtle(best_cost, buf_flag, cur_action);
+
+    //     if (record > best_cost) {
+    //         best_actions = actions;
+    //         cur_action = actions;
+    //         vector<string>::iterator it = cur_action.begin();
+    //         cur_action.erase(it);
+    //         record = best_cost;
+    //         cout << best_cost << endl;
+    //     }
+    //     else {
+    //         best_cost = record;
+    //     }
+    //     abccmd(read_design);
+    // }
+    //////////////////
+
+
+    // cur_action.push_back("resub -K 16 -N 1");
+    // cur_action.push_back("resub -l -K 16 -N 1");
+    // cur_action.push_back("dc2 -b");
+    // cur_action.push_back("orchestrate -K 4 -N 2");
+    // cur_action.push_back("rewrite");
+    // cur_action.push_back("dc2 -b");
+    // cur_action.push_back("dc2 -b");
+    // cur_action.push_back("rewrite -z");
+    // cur_action.push_back("orchestrate -K 8 -N 3");
+    // cur_action.push_back("balance");
+    // cur_action.push_back("dc2 -b -l");
+    // cur_action.push_back("dc2");
+    // cur_action.push_back("dc2");
+    // cur_action.push_back("orchestrate -l -z -K 12 -N 0");
+    // cur_action.push_back("dc2 -b");
+    // cur_action.push_back("refactor -l -z");
+    // cur_action.push_back("rewrite -l -z");
+    // cur_action.push_back("balance -l");
+    // cur_action.push_back("ifraig");
+    // cur_action.push_back("refactor -l -z");
+    // cur_action.push_back("resub -K 8 -N 3");
+    // cur_action.push_back("dc2 -b");
+    // cur_action.push_back("orchestrate -l -K 8 -N 2");
+    // cur_action.push_back("multi -m; sop; fx; st;");
+    // cur_action.push_back("refactor");
+    // cur_action.push_back("balance -l");
+    // cur_action.push_back("ifraig");
+    // cur_action.push_back("orchestrate -z -K 16 -N 1");
+    // cur_action.push_back("orchestrate -l -K 8 -N 1");
+    // cur_action.push_back("resub -K 4 -N 2");
+    // cur_action.push_back("balance");
+    // cur_action.push_back("multi -m; sop; fx; st;");
+    // cur_action.push_back("ifraig");
+
+    //// new cmd_SA /////
+    for (int i = 0; i < 8; i++) {
+        cout << "i: " << i << endl;
+        actions = new_cmd_simulated_annealing(best_cost, buf_flag, cur_action);
+
+        if (record > best_cost) {
+            best_actions = actions;
+            cur_action = actions;
+            vector<string>::iterator it = cur_action.begin();
+            cur_action.erase(it);
+            record = best_cost;
+            cout << best_cost << endl;
+        }
+        else {
+            best_cost = record;
+        }
+        abccmd(read_design);
+    }
+    //////////////////
+
+    // if put the lib greedy or lib sa after cmd_sa, should execute the code below first ///////////
+    for (int i = 0; i < best_actions.size(); i++) {
+        abccmd(best_actions[i]);
+    }
+    ///////////////////////
+
+    ///// lib_SA //////
+    for (int i = 0; i < 16; i++) {
+        cout << "i: " << i << endl;
+        lib_simulated_annealing(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
+
+        if (record > best_cost) {
+            record = best_cost;
+            cout << best_cost << endl;
+        }
+        else {
+            best_cost = record;
+        }
+    }
+    ////////////////////
+
+    ////// lib_greedy /////
+    lib_greedy(best_cost, gate_cost_dic, gate_timing_dic, buf_flag);
+    if (record > best_cost) {
+        record = best_cost;
+        cout << best_cost << endl;
+    }
+    else {
+        best_cost = record;
+    }
+    ////////////////////
 
     /////// lib gradient /////
     // abccmd("strash");
@@ -378,33 +454,33 @@ int main(int argc, char** argv) {
 
 
     ////// high effort //////
-    // abccmd(read_design);
-    // for (int i = 0; i < best_actions.size(); i++) {
-    //     abccmd(best_actions[i]);
-    // }
-    // abccmd("&get -n");
-    // abccmd("&dch -f");
-    // abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
-    // abccmd("&put");
-    // abccmd("mfs3 -ae -I 5 -O 5 -R 4 -E 1000");
-    // abccmd("mfs3 -aer -I 5 -O 5 -R 4 -E 1000");
+    abccmd(read_design);
+    for (int i = 0; i < best_actions.size(); i++) {
+        abccmd(best_actions[i]);
+    }
+    abccmd("&get -n");
+    abccmd("&dch -f");
+    abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
+    abccmd("&put");
+    abccmd("mfs3 -ae -I 5 -O 5 -R 4 -E 1000");
+    abccmd("mfs3 -aer -I 5 -O 5 -R 4 -E 1000");
 
-    // if (buf_flag) {
-    //     abccmd("topo");
-    //     abccmd("buffer -N 2");
-    // }
+    if (buf_flag) {
+        abccmd("topo");
+        abccmd("buffer -N 2");
+    }
 
-    // abccmd("write_verilog temp.v");
-    // // Abc_replace_super("tmep.v");
-    // args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
-    // temp = exec(cost_function, args);
-    // double high_effort_cost = extractCost(temp);
-    // cout << "high_effort_cost: " << high_effort_cost << endl;
-    // if (high_effort_cost < best_cost) {
-    //     abccmd(write_verilog);
-    //     // Abc_replace_super(output);
-    //     best_cost = high_effort_cost;
-    // }
+    abccmd("write_verilog temp.v");
+    // Abc_replace_super("tmep.v");
+    args = "-library " + library + " -netlist " + "temp.v" + " -output temp.out";
+    temp = exec(cost_function, args);
+    double high_effort_cost = extractCost(temp);
+    cout << "high_effort_cost: " << high_effort_cost << endl;
+    if (high_effort_cost < best_cost) {
+        abccmd(write_verilog);
+        // Abc_replace_super(output);
+        best_cost = high_effort_cost;
+    }
 
     ///// dc after revising lib /////
     // dc_exe(write_verilog, library, output, cost_function, best_cost, 1, 1);
