@@ -1,8 +1,10 @@
 #include "cost.h"
 #include "gvAbcSuper.h"
+#include "abc_util.h"
 
 CostMgr* costMgr;
 extern AbcSuperMgr* abcSuperMgr;
+extern AbcMgr* abcMgr;
 
 string exec(const string& cmd, const string& args) {
     array<char, 128> buffer;
@@ -58,6 +60,10 @@ double CostMgr::cost_cal(bool use_output, bool buf_flag) {
         abccmd("topo");
         abccmd("buffer -N 2");
     }
+    // abccmd("fraig_sweep");
+    if (_not_penalty) {
+        replace_not_with_nand();
+    }
     string write_verilog = "write_verilog ";
     string verilog_file;
     if (use_output) {
@@ -104,6 +110,7 @@ double CostMgr::cost_cal_use_map(bool use_output, bool buf_flag) {
 }
 
 double CostMgr::cost_cal_use_turtle(bool use_output, bool buf_flag, bool use_temp_lib) {
+    abccmd("strash");
     abccmd("write_aiger temp.aig");
     string verilog_file;
     if (use_output) {
@@ -121,9 +128,40 @@ double CostMgr::cost_cal_use_turtle(bool use_output, bool buf_flag, bool use_tem
 
     int result = system(command.c_str());
 
+    if (_not_penalty) {
+        string read_file = "read -m ";
+        read_file += verilog_file;
+        abccmd(read_file);
+        replace_not_with_nand();
+        string write_file = "write_verilog ";
+        write_file += verilog_file;
+        abccmd(write_file);
+    }
+    if (buf_flag) {
+        string read_file = "read -m ";
+        read_file += verilog_file;
+        abccmd(read_file);
+        abccmd("topo");
+        abccmd("buffer -N 2");
+        string write_file = "write_verilog ";
+        write_file += verilog_file;
+        abccmd(write_file);
+    }
+
     string args = "-library " + _lib_file + " -netlist " + verilog_file + " -output temp.out";
     string output = exec(_cost_exe, args);
     float temp = extractCost(output);
     if (temp == 0) return 10000;
     return temp;
 }
+
+    void CostMgr::change_name() {
+        std::remove(_output_file.c_str());
+
+        // 重新命名（移動）文件
+        if (std::rename(_temp_file.c_str(), _output_file.c_str()) != 0) {
+            std::perror("Error renaming file");
+        } else {
+            std::cout << "File renamed successfully" << std::endl;
+        }
+    }

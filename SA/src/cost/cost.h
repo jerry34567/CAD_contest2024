@@ -37,6 +37,8 @@ public:
     void add_name_to_type(string name, string type) {
         name_to_type[name] = type;
     }
+    void change_name();
+    void set_not_penalty(bool not_penalty) { _not_penalty = not_penalty; }
     string get_type(string name) { return name_to_type[name]; }
     string get_lib() { return _lib_file; }
     string get_cost_exe() { return _cost_exe; }
@@ -47,6 +49,7 @@ private:
     string _output_file;
     string _temp_file;
     string _module_name;
+    bool _not_penalty;
     map<string, string> name_to_type;
 };
 

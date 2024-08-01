@@ -9,6 +9,7 @@
 #include "util.h"
 #include "base/abc/abc.h"
 #include "gvAbcMgr.h"
+#include "libMgr.h"
 #include "parser.h"
 
 enum class ACTION{
@@ -44,25 +45,9 @@ enum class ACTION{
     XNOR_SUB_FT  = 29,
     BUF_ADD_FT   = 30,
     BUF_SUB_FT   = 31,
-    AND_ADD_ST   = 32,
-    AND_SUB_ST   = 33,
-    NAND_ADD_ST  = 34,
-    NAND_SUB_ST  = 35,
-    NOR_ADD_ST   = 36,
-    NOR_SUB_ST   = 37,
-    OR_ADD_ST    = 38,
-    OR_SUB_ST    = 39,
-    NOT_ADD_ST   = 40,
-    NOT_SUB_ST   = 41,
-    XOR_ADD_ST   = 42,
-    XOR_SUB_ST   = 43,
-    XNOR_ADD_ST  = 44,
-    XNOR_SUB_ST  = 45,
-    BUF_ADD_ST   = 46,
-    BUF_SUB_ST   = 47
 };
 
 ACTION get_action(bool);
-void lib_simulated_annealing(double&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
-void lib_simulated_annealing_using_turtle(double&, map<string, pair<string, float>>&, map<string, vector<float>>&, bool);
+void lib_simulated_annealing(double&, double&, map<string, pair<string, double>>&, map<string, vector<double>>&, bool);
+void lib_simulated_annealing_using_turtle(double&, double&, map<string, pair<string, double>>&, map<string, vector<double>>&, bool);
 #endif

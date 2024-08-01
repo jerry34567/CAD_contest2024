@@ -31,9 +31,9 @@ AbcMgr::abcReadDesign(string& fileName) {
     pNtkMgr = new abcNtkMgr(pAbc->pNtkCur);
 }
 
-void abccmd(string command){
-    char Command[1024], abcCmd[128];
+int abccmd(string command){
+    char Command[1024], abcCmd[256];
     strcpy(abcCmd, command.c_str());
     sprintf(Command, "%s", abcCmd);
-    Cmd_CommandExecute(abcMgr->get_Abc_Frame_t(), Command);
+    return Cmd_CommandExecute(abcMgr->get_Abc_Frame_t(), Command);
 }
