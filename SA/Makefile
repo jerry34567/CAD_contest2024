@@ -1,15 +1,15 @@
-SRCPKGS  = cost SA parser abc design_compiler greedy gradient util
-LIBPKGS  = cost SA parser abc design_compiler greedy gradient util
+SRCPKGS  = cost SA parser abc design_compiler greedy gradient util mio_library
+LIBPKGS  = cost SA parser abc design_compiler greedy gradient util mio_library
 
 MAIN     = main
 
-EXTLIBS	 = -lbayesopt -lnlopt -lm -lz -lreadline -ltermcap -ldl -lstdc++ -lffi -lgmp
+EXTLIBS	 = -lmockturtle -lbayesopt -lnlopt -lm -lz -lreadline -ltermcap -ldl -lstdc++ -lffi -lgmp
 SRCLIBS  = $(addprefix -l, $(LIBPKGS)) $(addprefix -l, $(ENGPKGS))
 
 
 #ENGPKGS	 += quteRTL
 #ENGPKGS	 += minisat
-ENGPKGS	 += abcc bayesopt
+ENGPKGS	 += abcc bayesopt mockturtle
 
 ENGSSRC	 = eng
 

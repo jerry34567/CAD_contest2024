@@ -43,6 +43,6 @@ class AbcMgr
         abcNtkMgr*   pNtkMgr;
 };
 
-void abccmd(string);
+int abccmd(string);
 
 #endif

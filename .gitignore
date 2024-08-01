@@ -29,6 +29,7 @@ results/
 
 #release file
 release/
+release_old/
 
 #library file
 *.genlib

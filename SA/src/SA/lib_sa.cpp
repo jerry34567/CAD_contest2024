@@ -4,22 +4,24 @@
 
 extern my_RandomNumGen  Rand;
 extern CostMgr* costMgr;
+extern MioMgr* mioMgr;
+extern SclMgr* sclMgr;
 
 ACTION get_action(bool buf_flag){
     int result;
     if (buf_flag)
         result = Rand() % 16;
     else
-        result = Rand() & 63;
-    return  static_cast<ACTION>(result % 48);
+        result = Rand() % 32;
+    return  static_cast<ACTION>(result);
 }
 
-void lib_simulated_annealing(double& best_cost, map<string, pair<string, float>>& gate_cost_dic, map<string, vector<float>>& gate_timing_dic, bool buf_flag){
+void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, map<string, pair<string, double>>& gate_cost_dic, map<string, vector<double>>& gate_timing_dic, bool buf_flag){
     double init_cost = costMgr->cost_cal(0, buf_flag);
-    map<string, pair<string, float>> temp_dic = gate_cost_dic;
-    map<string, vector<float>> timing_dic = gate_timing_dic;
-    map<string, pair<string, float>> record;
-    map<string, vector<float>> record2;
+    map<string, pair<string, double>> temp_dic = gate_cost_dic;
+    map<string, vector<double>> timing_dic = gate_timing_dic;
+    map<string, pair<string, double>> record;
+    map<string, vector<double>> record2;
     double orig_cost = init_cost;
     cout << "orig: " << orig_cost << endl;
 
@@ -128,77 +130,38 @@ void lib_simulated_annealing(double& best_cost, map<string, pair<string, float>>
             case ACTION::NOT_SUB_FT:
                 timing_dic["not"][0] -= 0.1;
             break;
-            case ACTION::AND_ADD_ST:
-                timing_dic["and"][1] += 0.1;
-            break;
-            case ACTION::AND_SUB_ST:
-                timing_dic["and"][1] -= 0.1;
-            break;
-            case ACTION::NAND_ADD_ST:
-                timing_dic["nand"][1] += 0.1;
-            break;
-            case ACTION::NAND_SUB_ST:
-                timing_dic["nand"][1] -= 0.1;
-            break;
-            case ACTION::OR_ADD_ST:
-                timing_dic["or"][1] += 0.1;
-            break;
-            case ACTION::OR_SUB_ST:
-                timing_dic["or"][1] -= 0.1;
-            break;
-            case ACTION::NOR_ADD_ST:
-                timing_dic["nor"][1] += 0.1;
-            break;
-            case ACTION::NOR_SUB_ST:
-                timing_dic["nor"][1] -= 0.1;
-            break;
-            case ACTION::XOR_ADD_ST:
-                timing_dic["xor"][1] += 0.1;
-            break;
-            case ACTION::XOR_SUB_ST:
-                timing_dic["xor"][1] -= 0.1;
-            break;
-            case ACTION::XNOR_ADD_ST:
-                timing_dic["xnor"][1] += 0.1;
-            break;
-            case ACTION::XNOR_SUB_ST:
-                timing_dic["xnor"][1] -= 0.1;
-            break;
-            case ACTION::BUF_ADD_ST:
-                timing_dic["buf"][1] += 0.1;
-            break;
-            case ACTION::BUF_SUB_ST:
-                timing_dic["buf"][1] -= 0.1;
-            break;
-            case ACTION::NOT_ADD_ST:
-                timing_dic["not"][1] += 0.1;
-            break;
-            case ACTION::NOT_SUB_ST:
-                timing_dic["not"][1] -= 0.1;
-            break;
         }
-        write_genlib("temp.genlib", temp_dic, timing_dic, 0);
-        write_liberty("temp_liberty.lib", temp_dic);
+        // write_genlib("temp.genlib", temp_dic, timing_dic, 0);
+        // write_liberty("temp_liberty.lib", temp_dic);
+        // if (buf_flag)
+        //     abccmd("read ./temp_liberty.lib");
+        // else
+        //     abccmd("read ./temp.genlib");
         if (buf_flag)
-            abccmd("read ./temp_liberty.lib");
+            sclMgr->revise_scllib(timing_dic, temp_dic);
         else
-            abccmd("read ./temp.genlib");
+            mioMgr->revise_genlib(timing_dic, temp_dic);
         double after_cost = costMgr->cost_cal(0, buf_flag);
         double diff = cost_diff(orig_cost, after_cost, init_cost);
         // std::cout << "cost prob:" << exp(-diff / T)  << "\n"; 
+        // cout << "orig: " << orig_cost << "  after: " << after_cost << endl;
         double rand = (double(rnGen(INT32_MAX)) / double(INT32_MAX));
         // cout << "rand: " << rand << endl;
         if (diff < 0 || rand < exp(-diff / T)) {
             // std::cout << "Replace! cost (orig/after): " << orig_cost << "  " << after_cost << "\n"; 
             orig_cost = after_cost;
-            if (orig_cost < best_cost) {
-                costMgr->cost_cal(1, buf_flag);
-                write_genlib("./contest.genlib", temp_dic, timing_dic, 0);
-                write_liberty("./contest_liberty.lib", temp_dic);
+            if (orig_cost < low_effort_best_cost) {
+                // costMgr->cost_cal(1, buf_flag);
+                // write_genlib("./contest.genlib", temp_dic, timing_dic, 0);
+                // write_liberty("./contest_liberty.lib", temp_dic);
                 gate_cost_dic = temp_dic;
                 gate_timing_dic = timing_dic;
                 // cout << "genlib replace!!!!!" << endl;
-                best_cost = orig_cost;
+                low_effort_best_cost = orig_cost;
+            }
+            if (low_effort_best_cost < best_cost) {
+                costMgr->change_name();
+                best_cost = low_effort_best_cost;
             }
         }
         else {
@@ -209,19 +172,23 @@ void lib_simulated_annealing(double& best_cost, map<string, pair<string, float>>
         if(T>200 && r<=0.95) r += 0.01;
         else if(r>=0.85) r -= 0.01;
     }
+    // if (buf_flag)
+    //     abccmd("read ./contest_liberty.lib");
+    // else
+    //     abccmd("read ./contest.genlib");
     if (buf_flag)
-        abccmd("read ./contest_liberty.lib");
+        sclMgr->revise_scllib(gate_timing_dic, gate_cost_dic);
     else
-        abccmd("read ./contest.genlib");
+        mioMgr->revise_genlib(gate_timing_dic, gate_cost_dic);
 }
 
 
-void lib_simulated_annealing_using_turtle(double& best_cost, map<string, pair<string, float>>& gate_cost_dic, map<string, vector<float>>& gate_timing_dic, bool buf_flag){
+void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& best_cost, map<string, pair<string, double>>& gate_cost_dic, map<string, vector<double>>& gate_timing_dic, bool buf_flag){
     double init_cost = costMgr->cost_cal_use_turtle(0, buf_flag, 0);
-    map<string, pair<string, float>> temp_dic = gate_cost_dic;
-    map<string, vector<float>> timing_dic = gate_timing_dic;
-    map<string, pair<string, float>> record;
-    map<string, vector<float>> record2;
+    map<string, pair<string, double>> temp_dic = gate_cost_dic;
+    map<string, vector<double>> timing_dic = gate_timing_dic;
+    map<string, pair<string, double>> record;
+    map<string, vector<double>> record2;
     double orig_cost = init_cost;
     cout << "orig: " << orig_cost << endl;
 
@@ -330,59 +297,18 @@ void lib_simulated_annealing_using_turtle(double& best_cost, map<string, pair<st
             case ACTION::NOT_SUB_FT:
                 timing_dic["not"][0] -= 0.1;
             break;
-            case ACTION::AND_ADD_ST:
-                timing_dic["and"][1] += 0.1;
-            break;
-            case ACTION::AND_SUB_ST:
-                timing_dic["and"][1] -= 0.1;
-            break;
-            case ACTION::NAND_ADD_ST:
-                timing_dic["nand"][1] += 0.1;
-            break;
-            case ACTION::NAND_SUB_ST:
-                timing_dic["nand"][1] -= 0.1;
-            break;
-            case ACTION::OR_ADD_ST:
-                timing_dic["or"][1] += 0.1;
-            break;
-            case ACTION::OR_SUB_ST:
-                timing_dic["or"][1] -= 0.1;
-            break;
-            case ACTION::NOR_ADD_ST:
-                timing_dic["nor"][1] += 0.1;
-            break;
-            case ACTION::NOR_SUB_ST:
-                timing_dic["nor"][1] -= 0.1;
-            break;
-            case ACTION::XOR_ADD_ST:
-                timing_dic["xor"][1] += 0.1;
-            break;
-            case ACTION::XOR_SUB_ST:
-                timing_dic["xor"][1] -= 0.1;
-            break;
-            case ACTION::XNOR_ADD_ST:
-                timing_dic["xnor"][1] += 0.1;
-            break;
-            case ACTION::XNOR_SUB_ST:
-                timing_dic["xnor"][1] -= 0.1;
-            break;
-            case ACTION::BUF_ADD_ST:
-                timing_dic["buf"][1] += 0.1;
-            break;
-            case ACTION::BUF_SUB_ST:
-                timing_dic["buf"][1] -= 0.1;
-            break;
-            case ACTION::NOT_ADD_ST:
-                timing_dic["not"][1] += 0.1;
-            break;
-            case ACTION::NOT_SUB_ST:
-                timing_dic["not"][1] -= 0.1;
-            break;
         }
-        write_genlib("./temp.genlib", temp_dic, timing_dic, 0);
-        write_liberty("temp_liberty.lib", temp_dic);
+        bool temp;
+        // if (buf_flag)
+        //     sclMgr->revise_scllib(timing_dic, temp_dic);
+        // else
+        //     mioMgr->revise_genlib(timing_dic, temp_dic);
+        // abccmd("write_genlib ./temp.genlib");
+        write_genlib("./temp.genlib", temp_dic, timing_dic, 0, temp);
+        // write_liberty("temp_liberty.lib", temp_dic);
         abccmd("super -I 4 -L 2 ./temp.genlib");
         double after_cost = costMgr->cost_cal_use_turtle(0, buf_flag, 1);
+        // cout << after_cost << endl;
         double diff = cost_diff(orig_cost, after_cost, init_cost);
         // std::cout << "cost prob:" << exp(-diff / T)  << "\n"; 
         double rand = (double(rnGen(INT32_MAX)) / double(INT32_MAX));
@@ -390,15 +316,21 @@ void lib_simulated_annealing_using_turtle(double& best_cost, map<string, pair<st
         if (diff < 0 || rand < exp(-diff / T)) {
             // std::cout << "Replace! cost (orig/after): " << orig_cost << "  " << after_cost << "\n"; 
             orig_cost = after_cost;
-            if (orig_cost < best_cost) {
-                write_genlib("./contest.genlib", temp_dic, timing_dic, 0);
+            if (orig_cost < low_effort_best_cost) {
+                write_genlib("./contest.genlib", temp_dic, timing_dic, 0, temp);
+                // abccmd("write_genlib ./contest.genlib");
                 abccmd("super -I 4 -L 2 ./contest.genlib");
-                costMgr->cost_cal_use_turtle(1, buf_flag, 0);
-                write_liberty("./contest_liberty.lib", temp_dic);
+                // costMgr->cost_cal_use_turtle(1, buf_flag, 0);
+
+                // write_liberty("./contest_liberty.lib", temp_dic);
                 gate_cost_dic = temp_dic;
                 gate_timing_dic = timing_dic;
                 // cout << "genlib replace!!!!!" << endl;
-                best_cost = orig_cost;
+                low_effort_best_cost = orig_cost;
+            }
+            if (low_effort_best_cost < best_cost) {
+                costMgr->change_name();
+                best_cost = low_effort_best_cost;
             }
         }
         else {
@@ -409,8 +341,12 @@ void lib_simulated_annealing_using_turtle(double& best_cost, map<string, pair<st
         if(T>200 && r<=0.95) r += 0.01;
         else if(r>=0.85) r -= 0.01;
     }
+    // if (buf_flag)
+    //     abccmd("read ./contest_liberty.lib");
+    // else
+        // abccmd("read ./contest.genlib");
     if (buf_flag)
-        abccmd("read ./contest_liberty.lib");
+        sclMgr->revise_scllib(gate_timing_dic, gate_cost_dic);
     else
-        abccmd("read ./contest.genlib");
+        mioMgr->revise_genlib(gate_timing_dic, gate_cost_dic);
 }

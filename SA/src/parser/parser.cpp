@@ -1,9 +1,11 @@
 #include "parser.h"
 #include "cost.h"
 #include "gvAbcSuper.h"
+#include "gvAbcMgr.h"
 
 extern CostMgr* costMgr;
 extern AbcSuperMgr* abcSuperMgr;
+extern AbcMgr* abcMgr;
 
 unordered_map<string, string> dictionary;
 unordered_map<string, string> dictionary2;
@@ -68,7 +70,7 @@ void initDictionary3() {
     dictionary3["xnor"] = "(A & B) | (!A & !B)";
 }
 
-void initTimingDictionary(map<string, vector<float>>& timing_dic) {
+void initTimingDictionary(map<string, vector<double>>& timing_dic) {
     timing_dic["not"] = {1, 0};
     timing_dic["buf"] = {1, 0};
     timing_dic["and"] = {1, 0};
@@ -78,6 +80,19 @@ void initTimingDictionary(map<string, vector<float>>& timing_dic) {
     timing_dic["xor"] = {1, 0};
     timing_dic["xnor"] = {1, 0};
 }
+
+void initTimingDictionary_using_cost(map<string, vector<double>>& timing_dic, map<string, pair<string, double>>& temp_dic) {
+    timing_dic["not"] = {temp_dic["not"].second, 0};
+    timing_dic["buf"] = {temp_dic["buf"].second, 0};
+    timing_dic["and"] = {temp_dic["and"].second, 0};
+    timing_dic["nand"] = {temp_dic["nand"].second, 0};
+    timing_dic["or"] = {temp_dic["or"].second, 0};
+    timing_dic["nor"] = {temp_dic["nor"].second, 0};
+    timing_dic["xor"] = {temp_dic["xor"].second, 0};
+    timing_dic["xnor"] = {temp_dic["xnor"].second, 0};
+}
+
+
 
 
 void write_syntcl(const string& module_name, const string& verilog_file) {
@@ -105,7 +120,7 @@ void write_syntcl(const string& module_name, const string& verilog_file) {
     write_syn.close();
 }
 
-void write_genlib(const string& output_file_name, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic, bool is_super) {
+void write_genlib(const string& output_file_name, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, bool is_super, bool& not_penalty) {
     ofstream writefile(output_file_name);
     if (!writefile.is_open()) {
         cerr << "can NOT open file!" << endl;
@@ -114,11 +129,19 @@ void write_genlib(const string& output_file_name, map<string, pair<string, float
     double max_area = 0;
     for (auto& cell_data : temp_dic) {
         if (cell_data.second.second > max_area && cell_data.second.second < 10000) max_area = cell_data.second.second;
+        if (cell_data.second.second > 1) cell_data.second.second -= 1;
     }
     for (auto& cell_data : temp_dic) {
         writefile << "GATE " << cell_data.second.first << "\t";
-        if (cell_data.second.second > 100000)
-            writefile << 8*max_area << "\t";
+        if (cell_data.second.second > 100000) {
+            if (cell_data.first == "not") {
+                writefile << temp_dic["nand"].second << "\t";
+                cell_data.second.second = temp_dic["nand"].second;
+                not_penalty = true;
+            }
+            else
+                writefile << 8*max_area << "\t";
+        }
         else
             writefile << cell_data.second.second << "\t";
         writefile << dictionary[cell_data.first] << "\t";
@@ -139,7 +162,7 @@ void write_genlib(const string& output_file_name, map<string, pair<string, float
 
 
 
-int parser(const string& lib_file, const string& verilog_file, const string& cost_exe, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic) {
+int parser(const string& lib_file, const string& verilog_file, const string& cost_exe, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, bool& not_penalty) {
     string input_file_name = lib_file;
     string genlib_file_name = "./contest.genlib";
     string verilog_file_name = verilog_file;
@@ -191,9 +214,13 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
         }
     }
 
-    // Write genlib file
-    write_genlib(genlib_file_name, temp_dic, timing_dic, 0);
+    for (auto& cell_data : temp_dic) {
+        if (cell_data.second.second > 1) cell_data.second.second -= 1;
+    }
 
+    // initTimingDictionary_using_cost(timing_dic, temp_dic);
+    // Write genlib file
+    write_genlib(genlib_file_name, temp_dic, timing_dic, 0, not_penalty);
 
     // write syn.tcl
     write_syntcl(module_name, verilog_file_name);
@@ -215,7 +242,7 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     return 0;
 }
 
-void write_liberty(const string& output_file_name, map<string, pair<string, float>>& temp_dic) {
+void write_liberty(const string& output_file_name, map<string, pair<string, double>>& temp_dic) {
     ofstream write_lib(output_file_name);
     if (!write_lib.is_open()) {
         cerr << "can NOT open file!" << endl;

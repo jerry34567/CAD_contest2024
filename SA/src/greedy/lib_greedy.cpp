@@ -1,9 +1,12 @@
 #include "lib_greedy.h"
+#include "cost.h"
 #include "util.h"
 
 extern CostMgr* costMgr;
+extern MioMgr* mioMgr;
+extern SclMgr* sclMgr;
 
-void print_temp(const std::map<std::string, std::pair<std::string, float>>& temp_dic) {
+void print_temp(const std::map<std::string, std::pair<std::string, double>>& temp_dic) {
     // 打印地圖內容
     for (const auto& item : temp_dic) {
         std::cout << std::left << std::setw(15) << item.first
@@ -12,7 +15,7 @@ void print_temp(const std::map<std::string, std::pair<std::string, float>>& temp
     }
 }
 
-void print_timing(const std::map<std::string, std::vector<float>>& timing_dic) {
+void print_timing(const std::map<std::string, std::vector<double>>& timing_dic) {
 
     // 打印地圖內容
     for (const auto& item : timing_dic) {
@@ -26,7 +29,7 @@ void print_timing(const std::map<std::string, std::vector<float>>& timing_dic) {
     }
 }
 
-double do_action(int i, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic, bool buf_flag) {
+double do_action(int i, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, bool buf_flag) {
     switch(i){
         case 0:
             temp_dic["and"].second *= 1.1;
@@ -124,69 +127,25 @@ double do_action(int i, map<string, pair<string, float>>& temp_dic, map<string, 
         case 31:
             timing_dic["not"][0] -= 0.1;
         break;
-        case 32:
-            timing_dic["and"][1] += 0.1;
-        break;
-        case 33:
-            timing_dic["and"][1] -= 0.1;
-        break;
-        case 34:
-            timing_dic["nand"][1] += 0.1;
-        break;
-        case 35:
-            timing_dic["nand"][1] -= 0.1;
-        break;
-        case 36:
-            timing_dic["or"][1] += 0.1;
-        break;
-        case 37:
-            timing_dic["or"][1] -= 0.1;
-        break;
-        case 38:
-            timing_dic["nor"][1] += 0.1;
-        break;
-        case 39:
-            timing_dic["nor"][1] -= 0.1;
-        break;
-        case 40:
-            timing_dic["xor"][1] += 0.1;
-        break;
-        case 41:
-            timing_dic["xor"][1] -= 0.1;
-        break;
-        case 42:
-            timing_dic["xnor"][1] += 0.1;
-        break;
-        case 43:
-            timing_dic["xnor"][1] -= 0.1;
-        break;
-        case 44:
-            timing_dic["buf"][1] += 0.1;
-        break;
-        case 45:
-            timing_dic["buf"][1] -= 0.1;
-        break;
-        case 46:
-            timing_dic["not"][1] += 0.1;
-        break;
-        case 47:
-            timing_dic["not"][1] -= 0.1;
-        break;
     }
-    write_genlib("./temp.genlib", temp_dic, timing_dic, 0);
-    write_liberty("temp_liberty.lib", temp_dic);
-    if (buf_flag) {
-        abccmd("read ./temp_liberty.lib");
-    }
-    else {
-        abccmd("read ./temp.genlib");
-    }
+    // write_genlib("./temp.genlib", temp_dic, timing_dic, 0);
+    // write_liberty("temp_liberty.lib", temp_dic);
+    // if (buf_flag) {
+    //     abccmd("read ./temp_liberty.lib");
+    // }
+    // else {
+    //     abccmd("read ./temp.genlib");
+    // }
+    if (buf_flag)
+        sclMgr->revise_scllib(timing_dic, temp_dic);
+    else
+        mioMgr->revise_genlib(timing_dic, temp_dic);
     return costMgr->cost_cal(0, buf_flag);
     
 }
 
 
-double do_action_use_turtle(int i, map<string, pair<string, float>>& temp_dic, map<string, vector<float>>& timing_dic, bool buf_flag) {
+double do_action_use_turtle(int i, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, bool buf_flag) {
     switch(i){
         case 0:
             temp_dic["and"].second *= 1.1;
@@ -284,57 +243,14 @@ double do_action_use_turtle(int i, map<string, pair<string, float>>& temp_dic, m
         case 31:
             timing_dic["not"][0] -= 0.1;
         break;
-        case 32:
-            timing_dic["and"][1] += 0.1;
-        break;
-        case 33:
-            timing_dic["and"][1] -= 0.1;
-        break;
-        case 34:
-            timing_dic["nand"][1] += 0.1;
-        break;
-        case 35:
-            timing_dic["nand"][1] -= 0.1;
-        break;
-        case 36:
-            timing_dic["or"][1] += 0.1;
-        break;
-        case 37:
-            timing_dic["or"][1] -= 0.1;
-        break;
-        case 38:
-            timing_dic["nor"][1] += 0.1;
-        break;
-        case 39:
-            timing_dic["nor"][1] -= 0.1;
-        break;
-        case 40:
-            timing_dic["xor"][1] += 0.1;
-        break;
-        case 41:
-            timing_dic["xor"][1] -= 0.1;
-        break;
-        case 42:
-            timing_dic["xnor"][1] += 0.1;
-        break;
-        case 43:
-            timing_dic["xnor"][1] -= 0.1;
-        break;
-        case 44:
-            timing_dic["buf"][1] += 0.1;
-        break;
-        case 45:
-            timing_dic["buf"][1] -= 0.1;
-        break;
-        case 46:
-            timing_dic["not"][1] += 0.1;
-        break;
-        case 47:
-            timing_dic["not"][1] -= 0.1;
-        break;
     }
-    write_genlib("./temp.genlib", temp_dic, timing_dic, 0);
-    write_liberty("temp_liberty.lib", temp_dic);
+    // if (buf_flag)
+    //     sclMgr->revise_scllib(timing_dic, temp_dic);
+    // else
+    //     mioMgr->revise_genlib(timing_dic, temp_dic);
+    bool temp;
+    write_genlib("./temp.genlib", temp_dic, timing_dic, 0, temp);
+    // write_liberty("temp_liberty.lib", temp_dic);
     abccmd("super -I 4 -L 2 ./temp.genlib");
     return costMgr->cost_cal_use_turtle(0, buf_flag, 1);
     
@@ -344,12 +260,12 @@ bool sortbysec(const pair<int,double> &a, const pair<int,double> &b) {
     return (a.second < b.second);
 }
 
-void lib_greedy(double& best_cost, const map<string, pair<string, float>>& gate_cost_dic, const map<string, vector<float>>& gate_timing_dic, bool buf_flag){
+void lib_greedy(double& low_effort_best_cost, double& best_cost, map<string, pair<string, double>>& gate_cost_dic, map<string, vector<double>>& gate_timing_dic, bool buf_flag){
     double orig_cost = costMgr->cost_cal(0, buf_flag);
-    map<string, pair<string, float>> temp_dic = gate_cost_dic;
-    map<string, vector<float>> timing_dic = gate_timing_dic;
-    map<string, pair<string, float>> record = temp_dic;
-    map<string, vector<float>> record2 = timing_dic;
+    map<string, pair<string, double>> temp_dic = gate_cost_dic;
+    map<string, vector<double>> timing_dic = gate_timing_dic;
+    map<string, pair<string, double>> record = temp_dic;
+    map<string, vector<double>> record2 = timing_dic;
     double cur_best_cost = orig_cost;
     
     while(true){
@@ -357,10 +273,10 @@ void lib_greedy(double& best_cost, const map<string, pair<string, float>>& gate_
         bool has_better = false;
         vector<pair<int, double>> improve_actions;
         double record_cost = cur_best_cost;
-        for (int i = 0; i < 48; i++) {
-            cout << "I: " << i << endl;
+        for (int i = 0; i < 32; i++) {
+            // cout << "I: " << i << endl;
             double after_cost = do_action(i, temp_dic, timing_dic, buf_flag);
-            cout << " cur_best: " << cur_best_cost << " this: " << after_cost << endl;
+            // cout << " cur_best: " << cur_best_cost << " this: " << after_cost << endl;
             // print_temp(temp_dic);
             // print_timing(timing_dic);
             // cout << endl;
@@ -392,33 +308,46 @@ void lib_greedy(double& best_cost, const map<string, pair<string, float>>& gate_
                     cur_best_cost = cost;
                 }
             }
-            temp_dic = record;
-            timing_dic = record2;
+
             for (int i = 0; i <= times; i++) {
                 cout << do_action(improve_actions[i].first, record, record2, buf_flag) << endl;
             }
-            write_genlib("contest.genlib", record, record2, 0);
-            write_liberty("contest_liberty.lib", record);
-            costMgr->cost_cal(1, buf_flag);
+
+            // write_genlib("contest.genlib", record, record2, 0);
+            // write_liberty("contest_liberty.lib", record);
+            if (cur_best_cost < low_effort_best_cost) {
+                // costMgr->cost_cal(1, buf_flag);
+                low_effort_best_cost = cur_best_cost;
+                gate_cost_dic = record;
+                gate_timing_dic = record2;
+            }
+            if (low_effort_best_cost < best_cost) {
+                costMgr->change_name();
+                best_cost = low_effort_best_cost;
+            }
             temp_dic = record;
             timing_dic = record2;
         }
     }
-    best_cost = cur_best_cost;
-    if (buf_flag) {
-        abccmd("read ./contest_liberty.lib");
-    }
-    else {
-        abccmd("read ./contest.genlib");
-    }
+
+    // if (buf_flag) {
+    //     abccmd("read ./contest_liberty.lib");
+    // }
+    // else {
+    //     abccmd("read ./contest.genlib");
+    // }
+    if (buf_flag)
+        sclMgr->revise_scllib(gate_timing_dic, gate_cost_dic);
+    else
+        mioMgr->revise_genlib(gate_timing_dic, gate_cost_dic);
 }
 
-void lib_greedy_using_turtle(double& best_cost, const map<string, pair<string, float>>& gate_cost_dic, const map<string, vector<float>>& gate_timing_dic, bool buf_flag){
+void lib_greedy_using_turtle(double& low_effort_best_cost, double& best_cost, map<string, pair<string, double>>& gate_cost_dic, map<string, vector<double>>& gate_timing_dic, bool buf_flag){
     double orig_cost = costMgr->cost_cal_use_turtle(0, buf_flag, 0);
-    map<string, pair<string, float>> temp_dic = gate_cost_dic;
-    map<string, vector<float>> timing_dic = gate_timing_dic;
-    map<string, pair<string, float>> record = temp_dic;
-    map<string, vector<float>> record2 = timing_dic;
+    map<string, pair<string, double>> temp_dic = gate_cost_dic;
+    map<string, vector<double>> timing_dic = gate_timing_dic;
+    map<string, pair<string, double>> record = temp_dic;
+    map<string, vector<double>> record2 = timing_dic;
     double cur_best_cost = orig_cost;
     
     while(true){
@@ -426,10 +355,10 @@ void lib_greedy_using_turtle(double& best_cost, const map<string, pair<string, f
         bool has_better = false;
         vector<pair<int, double>> improve_actions;
         double record_cost = cur_best_cost;
-        for (int i = 0; i < 48; i++) {
-            cout << "I: " << i << endl;
+        for (int i = 0; i < 32; i++) {
+            // cout << "I: " << i << endl;
             double after_cost = do_action_use_turtle(i, temp_dic, timing_dic, buf_flag);
-            cout << " cur_best: " << cur_best_cost << " this: " << after_cost << endl;
+            // cout << " cur_best: " << cur_best_cost << " this: " << after_cost << endl;
             // print_temp(temp_dic);
             // print_timing(timing_dic);
             // cout << endl;
@@ -466,19 +395,22 @@ void lib_greedy_using_turtle(double& best_cost, const map<string, pair<string, f
             for (int i = 0; i <= times; i++) {
                 cout << do_action_use_turtle(improve_actions[i].first, record, record2, buf_flag) << endl;
             }
-            write_genlib("./contest.genlib", record, record2, 0);
+            bool temp;
+            write_genlib("./contest.genlib", record, record2, 0, temp);
             abccmd("super -I 4 -L 2 ./contest.genlib");
-            write_liberty("contest_liberty.lib", record);
-            costMgr->cost_cal_use_turtle(1, buf_flag, 0);
+            // write_liberty("contest_liberty.lib", record);
+            if (cur_best_cost < low_effort_best_cost) {
+                // costMgr->cost_cal_use_turtle(1, buf_flag, 0);
+                low_effort_best_cost = cur_best_cost;
+                gate_cost_dic = record;
+                gate_timing_dic = record2;
+            }
+            if (low_effort_best_cost < best_cost) {
+                costMgr->change_name();
+                best_cost = low_effort_best_cost;
+            }
             temp_dic = record;
             timing_dic = record2;
         }
-    }
-    best_cost = cur_best_cost;
-    if (buf_flag) {
-        abccmd("read ./contest_liberty.lib");
-    }
-    else {
-        abccmd("read ./contest.genlib");
     }
 }
