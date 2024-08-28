@@ -16,10 +16,10 @@ MioMgr::MioMgr() {
     nor2 = Mio_LibraryReadNor2(library);
     Mio_Gate_t* temp;
     Mio_LibraryForEachGate(library, temp) {
-        if (!strcmp( "A*!B+!A*B" , Mio_GateReadForm(temp))) {
+        if (!strcmp( "A*!B+!A*B" , Mio_GateReadForm(temp)) || !strcmp( "(A & !B) | (!A & B)" , Mio_GateReadForm(temp))) {
             xor2 = temp;
         }
-        else if (!strcmp( "A*B+!A*!B",  Mio_GateReadForm(temp))) {
+        else if (!strcmp( "A*B+!A*!B",  Mio_GateReadForm(temp)) || !strcmp( "(A & B) | (!A & !B)" , Mio_GateReadForm(temp))) {
             xnor2 = temp;
         }
     }
@@ -108,4 +108,6 @@ void SclMgr::revise_scllib(map<string, vector<double>>& timing_dic, map<string, 
     }
     Abc_SclInstallGenlib( library, 0, 0, 0 );
     Mio_LibraryTransferCellIds();
+    mioMgr = new MioMgr;
+    mioMgr->revise_genlib(timing_dic, temp_dic);
 }

@@ -15,7 +15,7 @@ vector<string> cmd_simulated_annealing(double& best_cost, bool buf_flag){
     Abc_Ntk_t* pRecord;
 
     abccmd("strash");
-    double init_cost = costMgr->cost_cal(0, buf_flag);
+    double init_cost = costMgr->cost_cal(0);
     cout << "init: " << init_cost << endl;
 
     double orig_cost = init_cost;
@@ -98,7 +98,7 @@ vector<string> cmd_simulated_annealing(double& best_cost, bool buf_flag){
         }
         abccmd(act);
         // cout << "action: " << act << endl;
-        double after_cost = costMgr->cost_cal(0, buf_flag);
+        double after_cost = costMgr->cost_cal(0);
         double diff = cost_diff(orig_cost, after_cost, init_cost);
         // std::cout << "cost prob:" << exp(-diff / T)  << "\n"; 
         double rand = (double(Rand() / double(INT32_MAX)));
@@ -108,7 +108,7 @@ vector<string> cmd_simulated_annealing(double& best_cost, bool buf_flag){
             orig_cost = after_cost;
             cur_action.push_back(act);
             if (orig_cost < best_cost) {
-                costMgr->cost_cal(1, buf_flag);
+                costMgr->cost_cal(1);
                 best_cost = orig_cost;
                 best_action = cur_action;
             }
@@ -240,7 +240,7 @@ vector<string>cmd_simulated_annealing_using_turtle(double& best_cost, bool buf_f
     Abc_Ntk_t* pRecord;
 
     abccmd("strash");
-    double init_cost = costMgr->cost_cal_use_turtle(0, buf_flag, 0);
+    double init_cost = costMgr->cost_cal_use_turtle(0, 0);
     cout << "init: " << init_cost << endl;
 
     double orig_cost = init_cost;
@@ -323,7 +323,7 @@ vector<string>cmd_simulated_annealing_using_turtle(double& best_cost, bool buf_f
         }
         abccmd(act);
         // cout << "action: " << act << endl;
-        double after_cost = costMgr->cost_cal_use_turtle(0, buf_flag, 0);
+        double after_cost = costMgr->cost_cal_use_turtle(0, 0);
         double diff = cost_diff(orig_cost, after_cost, init_cost);
         // std::cout << "cost prob:" << exp(-diff / T)  << "\n"; 
         double rand = (double(Rand() / double(INT32_MAX)));
@@ -333,7 +333,7 @@ vector<string>cmd_simulated_annealing_using_turtle(double& best_cost, bool buf_f
             orig_cost = after_cost;
             cur_action.push_back(act);
             if (orig_cost < best_cost) {
-                costMgr->cost_cal_use_turtle(1, buf_flag, 0);
+                costMgr->cost_cal_use_turtle(1, 0);
                 best_cost = orig_cost;
                 best_action = cur_action;
             }

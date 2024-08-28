@@ -59,6 +59,12 @@ class my_RandomNumGen
       const unsigned operator() () {
          return My_Random(0);
       }
+      void reset(unsigned seed) {
+         My_Random(1);
+         for(int i = 0; i < seed; i++) {
+            My_Random(0);
+         }
+      }
    private:
       unsigned My_Random( int fReset )
       {

@@ -2,6 +2,7 @@
 #include "cost.h"
 #include "gvAbcSuper.h"
 #include "gvAbcMgr.h"
+#include <unordered_set>
 
 extern CostMgr* costMgr;
 extern AbcSuperMgr* abcSuperMgr;
@@ -12,6 +13,37 @@ unordered_map<string, string> dictionary2;
 unordered_map<string, string> dictionary3;
 
 std::string generateOutput();
+
+void try_to_change_gate(string gate_type, unordered_map<string, unordered_set<string>>& special_dic, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, string lib_file, string cost_exe) {
+    string temp_best;
+    double temp_best_cost = MAXFLOAT;
+    for (auto& it : special_dic[gate_type]) {
+        bool gar = false;
+        temp_dic[gate_type].first = it;
+        write_liberty("./contest_liberty.lib", temp_dic);
+        abccmd("read contest_liberty.lib");
+        // write_genlib("contest.genlib", temp_dic, timing_dic, 0, gar);
+        // abccmd("read contest.genlib");
+        // cout << cell_data["cell_name"] << " " << cell_data["cell_type"] << endl;
+        abccmd("backup");
+        abccmd("&get -n");
+        abccmd("&nf -p -a -F 10 -A 10 -E 100 -Q 100 -C 32 -R 1000");
+        abccmd("&put");
+        abccmd("buffer -N 2");
+        abccmd("write_verilog temp.v");
+        abccmd("restore");
+        string args1 = "-library " + lib_file + " -netlist " + "temp.v" + " -output temp.out";
+        string temp1 = exec(cost_exe, args1);
+        double temp_cost = extractCost(temp1);
+        cout << it << " " << temp_cost << endl;
+        if (temp_cost < temp_best_cost) {
+            temp_best = it;
+            temp_best_cost = temp_cost;
+        }
+    }
+    temp_dic[gate_type].first = temp_best;
+    // temp_dic[gate_type].second = temp_best_cost;
+}
 
 std::string extractModuleName(const std::string& filePath) {
     std::ifstream file(filePath);
@@ -81,44 +113,101 @@ void initTimingDictionary(map<string, vector<double>>& timing_dic) {
     timing_dic["xnor"] = {1, 0};
 }
 
-void initTimingDictionary_using_cost(map<string, vector<double>>& timing_dic, map<string, pair<string, double>>& temp_dic) {
-    timing_dic["not"] = {temp_dic["not"].second, 0};
-    timing_dic["buf"] = {temp_dic["buf"].second, 0};
-    timing_dic["and"] = {temp_dic["and"].second, 0};
-    timing_dic["nand"] = {temp_dic["nand"].second, 0};
-    timing_dic["or"] = {temp_dic["or"].second, 0};
-    timing_dic["nor"] = {temp_dic["nor"].second, 0};
-    timing_dic["xor"] = {temp_dic["xor"].second, 0};
-    timing_dic["xnor"] = {temp_dic["xnor"].second, 0};
-}
+void initTimingDictionary_using_cost(map<string, vector<double>>& timing_dic, map<string, pair<string, double>>& temp_dic, string lib_file, string cost_exe) {
+    Abc_Ntk_t* pNtk = Abc_FrameReadNtk(abcMgr->get_Abc_Frame_t());
+    int level = Abc_NtkLevel(pNtk);
+    int no_timing = 0;
+    for (auto& cell : temp_dic) {
+        int temp_level = 1;
+        double first_cost;
+        double cost_distance;
+        double last_cost;
+        while (temp_level < level * 3) {
+            ofstream write_file("temp_file.v");
+            write_file << "module " << Abc_NtkName(pNtk) << " (a, b, o);\n";
+            write_file << "input a, b;\n";
+            write_file << "output o;\n";
+            for (int i = 0; i < temp_level; i++) {
+                if (cell.first != "buf" && cell.first != "not") {
+                    if (i == 0)
+                        write_file << cell.second.first << "(a,b,y1);\n";
+                    else if (i == temp_level-1) {
+                        write_file << cell.second.first << "(y" << to_string(i) << ",t" << to_string(i) << ",o);\n";
+                    }
+                    else {
+                        write_file << cell.second.first << "(y" << to_string(i) << ",t" << to_string(i) << ",y" << to_string(i+1) << ");\n";
+                    }
+                }
+                else {
+                    if (i == 0)
+                        write_file << cell.second.first << "(a,y1);\n";
+                    else if (i == temp_level-1) {
+                        write_file << cell.second.first << "(y" << to_string(i) << ",o);\n";
+                    }
+                    else {
+                        write_file << cell.second.first << "(y" << to_string(i) << ",y" << to_string(i+1) << ");\n";
+                    }
+                }
+            }
+            write_file << "endmodule\n";
+            write_file.close();
+            string args = "-library " + lib_file + " -netlist temp_file.v -output temp.out";
+            string output = exec(cost_exe, args);
+            float cost = extractCost(output);
+            // cout << cell.second.first << ": " << temp_level << "  cost: " << cost << endl;
+            if (temp_level == 1) {
+                first_cost = cost;
+                last_cost = cost;
+            }
+            else if (temp_level == 2) {
+                cost_distance = cost - first_cost;
+                last_cost = cost;
+            }
+            else {
+                double after_cost_distance = cost - last_cost;
+                if (cost_distance * 5 < after_cost_distance) {
+                    timing_dic[cell.first] = {(5.0 / (temp_level-1)), 0};
+                    break;
+                }
+                cost_distance = after_cost_distance;
+                last_cost = cost;
+            }
+            temp_level++;
+        }
+        if (temp_level == level * 3) {
+            timing_dic[cell.first] = {1, 0};
 
-
-
-
-void write_syntcl(const string& module_name, const string& verilog_file) {
-    ofstream write_syn("syn.tcl");
-    if (!write_syn.is_open()) {
-        cerr << "can NOT open file!" << endl;
+        }
     }
-
-    write_syn << "set design_name \"" + module_name + "\"\n" +
-                 "set verilog_file \"" + verilog_file + "\"\n" +
-                 "set library_file \"contest_liberty.db\"\n" +
-                 "set target_library  \"contest_liberty.db\"\n" +
-                 "set link_library   \"* $target_library\"\n" +
-                 "analyze -format verilog $verilog_file\n" +
-                 "elaborate $design_name\n" +
-                 "current_design $design_name\n" +
-                 "set_max_area 0\n" +
-                 "uniquify\n" +
-                 "compile_ultra -area -no_design_rule\n" +
-                 "compile_ultra -incremental\n" +
-                 "optimize_netlist -area\n" +
-                 "optimize_netlist -area\n" +
-                 "write -f verilog -hierarchy -output syn_design.v\n" +
-                 "quit\n";
-    write_syn.close();
 }
+
+
+
+
+// void write_syntcl(const string& module_name, const string& verilog_file) {
+//     ofstream write_syn("syn.tcl");
+//     if (!write_syn.is_open()) {
+//         cerr << "can NOT open file!" << endl;
+//     }
+
+//     write_syn << "set design_name \"" + module_name + "\"\n" +
+//                  "set verilog_file \"" + verilog_file + "\"\n" +
+//                  "set library_file \"contest_liberty.db\"\n" +
+//                  "set target_library  \"contest_liberty.db\"\n" +
+//                  "set link_library   \"* $target_library\"\n" +
+//                  "analyze -format verilog $verilog_file\n" +
+//                  "elaborate $design_name\n" +
+//                  "current_design $design_name\n" +
+//                  "set_max_area 0\n" +
+//                  "uniquify\n" +
+//                  "compile_ultra -area -no_design_rule\n" +
+//                  "compile_ultra -incremental\n" +
+//                  "optimize_netlist -area\n" +
+//                  "optimize_netlist -area\n" +
+//                  "write -f verilog -hierarchy -output syn_design.v\n" +
+//                  "quit\n";
+//     write_syn.close();
+// }
 
 void write_genlib(const string& output_file_name, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, bool is_super, bool& not_penalty) {
     ofstream writefile(output_file_name);
@@ -128,7 +217,7 @@ void write_genlib(const string& output_file_name, map<string, pair<string, doubl
 
     double max_area = 0;
     for (auto& cell_data : temp_dic) {
-        if (cell_data.second.second > max_area && cell_data.second.second < 10000) max_area = cell_data.second.second;
+        if (cell_data.second.second > max_area && cell_data.second.second < 100000) max_area = cell_data.second.second;
         if (cell_data.second.second > 1) cell_data.second.second -= 1;
     }
     for (auto& cell_data : temp_dic) {
@@ -162,7 +251,7 @@ void write_genlib(const string& output_file_name, map<string, pair<string, doubl
 
 
 
-int parser(const string& lib_file, const string& verilog_file, const string& cost_exe, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, bool& not_penalty) {
+unordered_map<string, unordered_set<string>> parser(const string& lib_file, const string& verilog_file, const string& cost_exe, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic, bool& not_penalty) {
     string input_file_name = lib_file;
     string genlib_file_name = "./contest.genlib";
     string verilog_file_name = verilog_file;
@@ -172,7 +261,6 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     ifstream readfile(input_file_name);
     if (!readfile.is_open()) {
         cerr << "can NOT open file!" << endl;
-        return 1;
     }
     json j;
     readfile >> j;
@@ -182,7 +270,7 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
     initDictionary();
     initDictionary2();
     initDictionary3();
-    initTimingDictionary(timing_dic);
+    // initTimingDictionary(timing_dic);
 
     // Analyze
     for (auto& cell_data : j["cells"]) {
@@ -218,28 +306,43 @@ int parser(const string& lib_file, const string& verilog_file, const string& cos
         if (cell_data.second.second > 1) cell_data.second.second -= 1;
     }
 
-    // initTimingDictionary_using_cost(timing_dic, temp_dic);
+    float check_same = temp_dic["and"].second;
+    unordered_map<string, unordered_set<string>> special_dic;
+    for (auto& cell_data : j["cells"]) {
+        special_dic[cell_data["cell_type"]].insert(cell_data["cell_name"]);
+    }
+
+    if (temp_dic["nand"].second == check_same && temp_dic["nor"].second == check_same && temp_dic["or"].second == check_same && temp_dic["not"].second == check_same && temp_dic["buf"].second == check_same && temp_dic["xor"].second == check_same && temp_dic["xnor"].second == check_same) {
+        try_to_change_gate("and", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+        try_to_change_gate("nand", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+        try_to_change_gate("nor", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+        try_to_change_gate("or", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+        try_to_change_gate("not", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+        try_to_change_gate("xor", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+        try_to_change_gate("xnor", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+        try_to_change_gate("buf", special_dic, temp_dic, timing_dic, lib_file, cost_exe);
+    }
+    initTimingDictionary_using_cost(timing_dic, temp_dic, lib_file, cost_exe);
     // Write genlib file
     write_genlib(genlib_file_name, temp_dic, timing_dic, 0, not_penalty);
 
     // write syn.tcl
-    write_syntcl(module_name, verilog_file_name);
+    // write_syntcl(module_name, verilog_file_name);
 
     // write lc.sh
-    ofstream write_lc("lc.sh");
-    if (!write_lc.is_open()) {
-        cerr << "can NOT open file!" << endl;
-        return 1;
-    }
+    // ofstream write_lc("lc.sh");
+    // if (!write_lc.is_open()) {
+    //     cerr << "can NOT open file!" << endl;
+    // }
 
-    write_lc << "read_lib contest_liberty.lib\nwrite_lib -format db my_lib -output contest_liberty.db\nquit\n";
-    write_lc.close();
+    // write_lc << "read_lib contest_liberty.lib\nwrite_lib -format db my_lib -output contest_liberty.db\nquit\n";
+    // write_lc.close();
 
 
     // write contest_liberty.lib
     write_liberty("./contest_liberty.lib", temp_dic);
 
-    return 0;
+    return special_dic;
 }
 
 void write_liberty(const string& output_file_name, map<string, pair<string, double>>& temp_dic) {

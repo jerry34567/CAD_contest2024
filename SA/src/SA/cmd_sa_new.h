@@ -9,6 +9,7 @@
 #include "cost.h"
 #include "util.h"
 #include "gvAbcMgr.h"
+#include <map>
 
 enum class INST2{
     add_action      = 0,
@@ -34,12 +35,30 @@ enum class ACTION2{
     ABC9SOPB     = 12, //  &sopb     performs SOP balancing
     DRWSAT       = 13, //  drwsat -b
     ABC9DEEPSYN  = 14, //  "&dch%s; &if -a -K %d; &mfs -dae -W 20 -L 0-100; &st; &put;"
-    ABC9IF       = 15, //  &dch -fpx; &if -aph -K %d; &st; &put;
+    ABC9JF       = 15, //  &dch -fpx; &if -aph -K %d; &st; &put;
+    RESYN        = 16,
+    RESYN2       = 17,
+    RESYN2a      = 18,
+    RESYN3       = 19,
+    COMPRESS     = 20,
+    COMPRESS2    = 21,
+    RWSAT        = 22,
+    DRWSAT2      = 23,
+    DC3          = 24,
+    DC4          = 25,
+    SRCRW        = 26,
+    SRCRS        = 27,
+    SRCRWS       = 28,
+    R2RS         = 29,
+    C2RS         = 30
 };
     // phase_map
 
 INST2 get_inst2();
-vector<string> new_cmd_simulated_annealing(double&, double&, bool, vector<string>&);
+ACTION2 get_action2();
+vector<string> new_cmd_simulated_annealing(double&, double&, bool, vector<string>&, map<string, pair<string, double>>&);
 vector<string> new_cmd_simulated_annealing_using_map(double&, bool, vector<string>&);
-vector<string> new_cmd_simulated_annealing_using_turtle(double&, double&, bool, vector<string>&);
+vector<string> new_cmd_simulated_annealing_using_turtle(double&, double&, bool, vector<string>&, map<string, pair<string, double>>&);
+string get_command(ACTION2);
+
 #endif

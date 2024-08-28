@@ -9,15 +9,12 @@ extern SclMgr* sclMgr;
 
 ACTION get_action(bool buf_flag){
     int result;
-    if (buf_flag)
-        result = Rand() % 16;
-    else
-        result = Rand() % 32;
+    result = Rand() % 32;
     return  static_cast<ACTION>(result);
 }
 
 void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, map<string, pair<string, double>>& gate_cost_dic, map<string, vector<double>>& gate_timing_dic, bool buf_flag){
-    double init_cost = costMgr->cost_cal(0, buf_flag);
+    double init_cost = costMgr->cost_cal(0);
     map<string, pair<string, double>> temp_dic = gate_cost_dic;
     map<string, vector<double>> timing_dic = gate_timing_dic;
     map<string, pair<string, double>> record;
@@ -32,106 +29,167 @@ void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, ma
     while(T > T_low){
         record = temp_dic;
         record2 = timing_dic;
-        ACTION action = get_action(buf_flag);
-        switch(action){
-            case ACTION::AND_ADD:
-                temp_dic["and"].second *= 1.1;
-            break;
-            case ACTION::AND_SUB:
-                temp_dic["and"].second *= 0.9;
-            break;
-            case ACTION::NAND_ADD:
-                temp_dic["nand"].second *= 1.1;
-            break;
-            case ACTION::NAND_SUB:
-                temp_dic["nand"].second *= 0.9;
-            break;
-            case ACTION::OR_ADD:
-                temp_dic["or"].second *= 1.1;
-            break;
-            case ACTION::OR_SUB:
-                temp_dic["or"].second *= 0.9;
-            break;
-            case ACTION::NOR_ADD:
-                temp_dic["nor"].second *= 1.1;
-            break;
-            case ACTION::NOR_SUB:
-                temp_dic["nor"].second *= 0.9;
-            break;
-            case ACTION::XOR_ADD:
-                temp_dic["xor"].second *= 1.1;
-            break;
-            case ACTION::XOR_SUB:
-                temp_dic["xor"].second *= 0.9;
-            break;
-            case ACTION::XNOR_ADD:
-                temp_dic["xnor"].second *= 1.1;
-            break;
-            case ACTION::XNOR_SUB:
-                temp_dic["xnor"].second *= 0.9;
-            break;
-            case ACTION::BUF_ADD:
-                temp_dic["buf"].second *= 1.1;
-            break;
-            case ACTION::BUF_SUB:
-                temp_dic["buf"].second *= 0.9;
-            break;
-            case ACTION::NOT_ADD:
-                temp_dic["not"].second *= 1.1;
-            break;
-            case ACTION::NOT_SUB:
-                temp_dic["not"].second *= 0.9;
-            break;
-            case ACTION::AND_ADD_FT:
-                timing_dic["and"][0] += 0.1;
-            break;
-            case ACTION::AND_SUB_FT:
-                timing_dic["and"][0] -= 0.1;
-            break;
-            case ACTION::NAND_ADD_FT:
-                timing_dic["nand"][0] += 0.1;
-            break;
-            case ACTION::NAND_SUB_FT:
-                timing_dic["nand"][0] -= 0.1;
-            break;
-            case ACTION::OR_ADD_FT:
-                timing_dic["or"][0] += 0.1;
-            break;
-            case ACTION::OR_SUB_FT:
-                timing_dic["or"][0] -= 0.1;
-            break;
-            case ACTION::NOR_ADD_FT:
-                timing_dic["nor"][0] += 0.1;
-            break;
-            case ACTION::NOR_SUB_FT:
-                timing_dic["nor"][0] -= 0.1;
-            break;
-            case ACTION::XOR_ADD_FT:
-                timing_dic["xor"][0] += 0.1;
-            break;
-            case ACTION::XOR_SUB_FT:
-                timing_dic["xor"][0] -= 0.1;
-            break;
-            case ACTION::XNOR_ADD_FT:
-                timing_dic["xnor"][0] += 0.1;
-            break;
-            case ACTION::XNOR_SUB_FT:
-                timing_dic["xnor"][0] -= 0.1;
-            break;
-            case ACTION::BUF_ADD_FT:
-                timing_dic["buf"][0] += 0.1;
-            break;
-            case ACTION::BUF_SUB_FT:
-                timing_dic["buf"][0] -= 0.1;
-            break;
-            case ACTION::NOT_ADD_FT:
-                timing_dic["not"][0] += 0.1;
-            break;
-            case ACTION::NOT_SUB_FT:
-                timing_dic["not"][0] -= 0.1;
-            break;
+        int round = 1 + (Rand() % 4);
+        for (int j = 0; j < round; j++) {
+            double number = (double(Rand() / double(INT32_MAX))) / 2;
+            ACTION action = get_action(buf_flag);
+            switch(action){
+                case ACTION::AND_ADD:
+                    temp_dic["and"].second *= 1.1;
+                break;
+                case ACTION::AND_SUB:
+                    temp_dic["and"].second *= 0.9;
+                break;
+                case ACTION::NAND_ADD:
+                    temp_dic["nand"].second *= 1.1;
+                break;
+                case ACTION::NAND_SUB:
+                    temp_dic["nand"].second *= 0.9;
+                break;
+                case ACTION::OR_ADD:
+                    temp_dic["or"].second *= 1.1;
+                break;
+                case ACTION::OR_SUB:
+                    temp_dic["or"].second *= 0.9;
+                break;
+                case ACTION::NOR_ADD:
+                    temp_dic["nor"].second *= 1.1;
+                break;
+                case ACTION::NOR_SUB:
+                    temp_dic["nor"].second *= 0.9;
+                break;
+                case ACTION::XOR_ADD:
+                    temp_dic["xor"].second *= 1.1;
+                break;
+                case ACTION::XOR_SUB:
+                    temp_dic["xor"].second *= 0.9;
+                break;
+                case ACTION::XNOR_ADD:
+                    temp_dic["xnor"].second *= 1.1;
+                break;
+                case ACTION::XNOR_SUB:
+                    temp_dic["xnor"].second *= 0.9;
+                break;
+                case ACTION::BUF_ADD:
+                    temp_dic["buf"].second *= 1.1;
+                break;
+                case ACTION::BUF_SUB:
+                    temp_dic["buf"].second *= 0.9;
+                break;
+                case ACTION::NOT_ADD:
+                    temp_dic["not"].second *= 1.1;
+                break;
+                case ACTION::NOT_SUB:
+                    temp_dic["not"].second *= 0.9;
+                break;
+                case ACTION::AND_ADD_FT:
+                    timing_dic["and"][0] += number;
+                break;
+                case ACTION::AND_SUB_FT:
+                    timing_dic["and"][0] -= number;
+                    if (timing_dic["and"][0] < 0.01) timing_dic["and"][0] = 0.01;
+                break;
+                case ACTION::NAND_ADD_FT:
+                    timing_dic["nand"][0] += number;
+                break;
+                case ACTION::NAND_SUB_FT:
+                    timing_dic["nand"][0] -= number;
+                    if (timing_dic["nand"][0] < 0.01) timing_dic["nand"][0] = 0.01;
+                break;
+                case ACTION::OR_ADD_FT:
+                    timing_dic["or"][0] += number;
+                break;
+                case ACTION::OR_SUB_FT:
+                    timing_dic["or"][0] -= number;
+                    if (timing_dic["or"][0] < 0.01) timing_dic["or"][0] = 0.01;
+                break;
+                case ACTION::NOR_ADD_FT:
+                    timing_dic["nor"][0] += number;
+                break;
+                case ACTION::NOR_SUB_FT:
+                    timing_dic["nor"][0] -= number;
+                    if (timing_dic["nor"][0] < 0.01) timing_dic["nor"][0] = 0.01;
+                break;
+                case ACTION::XOR_ADD_FT:
+                    timing_dic["xor"][0] += number;
+                break;
+                case ACTION::XOR_SUB_FT:
+                    timing_dic["xor"][0] -= number;
+                    if (timing_dic["xor"][0] < 0.01) timing_dic["xor"][0] = 0.01;
+                break;
+                case ACTION::XNOR_ADD_FT:
+                    timing_dic["xnor"][0] += number;
+                break;
+                case ACTION::XNOR_SUB_FT:
+                    timing_dic["xnor"][0] -= number;
+                    if (timing_dic["xnor"][0] < 0.01) timing_dic["xnor"][0] = 0.01;
+                break;
+                case ACTION::BUF_ADD_FT:
+                    timing_dic["buf"][0] += number;
+                break;
+                case ACTION::BUF_SUB_FT:
+                    timing_dic["buf"][0] -= number;
+                    if (timing_dic["buf"][0] < 0.01) timing_dic["buf"][0] = 0.01;
+                break;
+                case ACTION::NOT_ADD_FT:
+                    timing_dic["not"][0] += number;
+                break;
+                case ACTION::NOT_SUB_FT:
+                    timing_dic["not"][0] -= number;
+                    if (timing_dic["not"][0] < 0.01) timing_dic["not"][0] = 0.01;
+                break;
+                // case ACTION::AND_ADD_FT:
+                //     timing_dic["and"][0] += 0.1;
+                // break;
+                // case ACTION::AND_SUB_FT:
+                //     timing_dic["and"][0] -= 0.1;
+                // break;
+                // case ACTION::NAND_ADD_FT:
+                //     timing_dic["nand"][0] += 0.1;
+                // break;
+                // case ACTION::NAND_SUB_FT:
+                //     timing_dic["nand"][0] -= 0.1;
+                // break;
+                // case ACTION::OR_ADD_FT:
+                //     timing_dic["or"][0] += 0.1;
+                // break;
+                // case ACTION::OR_SUB_FT:
+                //     timing_dic["or"][0] -= 0.1;
+                // break;
+                // case ACTION::NOR_ADD_FT:
+                //     timing_dic["nor"][0] += 0.1;
+                // break;
+                // case ACTION::NOR_SUB_FT:
+                //     timing_dic["nor"][0] -= 0.1;
+                // break;
+                // case ACTION::XOR_ADD_FT:
+                //     timing_dic["xor"][0] += 0.1;
+                // break;
+                // case ACTION::XOR_SUB_FT:
+                //     timing_dic["xor"][0] -= 0.1;
+                // break;
+                // case ACTION::XNOR_ADD_FT:
+                //     timing_dic["xnor"][0] += 0.1;
+                // break;
+                // case ACTION::XNOR_SUB_FT:
+                //     timing_dic["xnor"][0] -= 0.1;
+                // break;
+                // case ACTION::BUF_ADD_FT:
+                //     timing_dic["buf"][0] += 0.1;
+                // break;
+                // case ACTION::BUF_SUB_FT:
+                //     timing_dic["buf"][0] -= 0.1;
+                // break;
+                // case ACTION::NOT_ADD_FT:
+                //     timing_dic["not"][0] += 0.1;
+                // break;
+                // case ACTION::NOT_SUB_FT:
+                //     timing_dic["not"][0] -= 0.1;
+                // break;
+            }
         }
-        // write_genlib("temp.genlib", temp_dic, timing_dic, 0);
+        // bool temp = false;
+        // write_genlib("temp.genlib", temp_dic, timing_dic,0, temp);
         // write_liberty("temp_liberty.lib", temp_dic);
         // if (buf_flag)
         //     abccmd("read ./temp_liberty.lib");
@@ -141,7 +199,8 @@ void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, ma
             sclMgr->revise_scllib(timing_dic, temp_dic);
         else
             mioMgr->revise_genlib(timing_dic, temp_dic);
-        double after_cost = costMgr->cost_cal(0, buf_flag);
+        double after_cost = costMgr->cost_cal(0);
+        
         double diff = cost_diff(orig_cost, after_cost, init_cost);
         // std::cout << "cost prob:" << exp(-diff / T)  << "\n"; 
         // cout << "orig: " << orig_cost << "  after: " << after_cost << endl;
@@ -161,6 +220,11 @@ void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, ma
             }
             if (low_effort_best_cost < best_cost) {
                 costMgr->change_name();
+                if (buf_flag)
+                    abccmd("write_lib best_liberty.lib");
+                else 
+                    abccmd("write_genlib best.genlib");
+                costMgr->set_best_dic(gate_cost_dic);
                 best_cost = low_effort_best_cost;
             }
         }
@@ -184,7 +248,7 @@ void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, ma
 
 
 void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& best_cost, map<string, pair<string, double>>& gate_cost_dic, map<string, vector<double>>& gate_timing_dic, bool buf_flag){
-    double init_cost = costMgr->cost_cal_use_turtle(0, buf_flag, 0);
+    double init_cost = costMgr->cost_cal_use_turtle(0, 0);
     map<string, pair<string, double>> temp_dic = gate_cost_dic;
     map<string, vector<double>> timing_dic = gate_timing_dic;
     map<string, pair<string, double>> record;
@@ -199,6 +263,7 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
     while(T > T_low){
         record = temp_dic;
         record2 = timing_dic;
+        double number = (double(Rand() / double(INT32_MAX))) / 2;
         ACTION action = get_action(buf_flag);
         switch(action){
             case ACTION::AND_ADD:
@@ -250,53 +315,109 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
                 temp_dic["not"].second *= 0.9;
             break;
             case ACTION::AND_ADD_FT:
-                timing_dic["and"][0] += 0.1;
+                timing_dic["and"][0] += number;
             break;
             case ACTION::AND_SUB_FT:
-                timing_dic["and"][0] -= 0.1;
+                timing_dic["and"][0] -= number;
+                if (timing_dic["and"][0] < 0) timing_dic["and"][0] = 0.01;
             break;
             case ACTION::NAND_ADD_FT:
-                timing_dic["nand"][0] += 0.1;
+                timing_dic["nand"][0] += number;
             break;
             case ACTION::NAND_SUB_FT:
-                timing_dic["nand"][0] -= 0.1;
+                timing_dic["nand"][0] -= number;
+                if (timing_dic["nand"][0] < 0) timing_dic["nand"][0] = 0.01;
             break;
             case ACTION::OR_ADD_FT:
-                timing_dic["or"][0] += 0.1;
+                timing_dic["or"][0] += number;
             break;
             case ACTION::OR_SUB_FT:
-                timing_dic["or"][0] -= 0.1;
+                timing_dic["or"][0] -= number;
+                if (timing_dic["or"][0] < 0) timing_dic["or"][0] = 0.01;
             break;
             case ACTION::NOR_ADD_FT:
-                timing_dic["nor"][0] += 0.1;
+                timing_dic["nor"][0] += number;
             break;
             case ACTION::NOR_SUB_FT:
-                timing_dic["nor"][0] -= 0.1;
+                timing_dic["nor"][0] -= number;
+                if (timing_dic["nor"][0] < 0) timing_dic["nor"][0] = 0.01;
             break;
             case ACTION::XOR_ADD_FT:
-                timing_dic["xor"][0] += 0.1;
+                timing_dic["xor"][0] += number;
             break;
             case ACTION::XOR_SUB_FT:
-                timing_dic["xor"][0] -= 0.1;
+                timing_dic["xor"][0] -= number;
+                if (timing_dic["xor"][0] < 0) timing_dic["xor"][0] = 0.01;
             break;
             case ACTION::XNOR_ADD_FT:
-                timing_dic["xnor"][0] += 0.1;
+                timing_dic["xnor"][0] += number;
             break;
             case ACTION::XNOR_SUB_FT:
-                timing_dic["xnor"][0] -= 0.1;
+                timing_dic["xnor"][0] -= number;
+                if (timing_dic["xnor"][0] < 0) timing_dic["xnor"][0] = 0.01;
             break;
             case ACTION::BUF_ADD_FT:
-                timing_dic["buf"][0] += 0.1;
+                timing_dic["buf"][0] += number;
             break;
             case ACTION::BUF_SUB_FT:
-                timing_dic["buf"][0] -= 0.1;
+                timing_dic["buf"][0] -= number;
+                if (timing_dic["buf"][0] < 0) timing_dic["buf"][0] = 0.01;
             break;
             case ACTION::NOT_ADD_FT:
-                timing_dic["not"][0] += 0.1;
+                timing_dic["not"][0] += number;
             break;
             case ACTION::NOT_SUB_FT:
-                timing_dic["not"][0] -= 0.1;
+                timing_dic["not"][0] -= number;
+                if (timing_dic["not"][0] < 0) timing_dic["not"][0] = 0.01;
             break;
+            // case ACTION::AND_ADD_FT:
+            //     timing_dic["and"][0] += 0.1;
+            // break;
+            // case ACTION::AND_SUB_FT:
+            //     timing_dic["and"][0] -= 0.1;
+            // break;
+            // case ACTION::NAND_ADD_FT:
+            //     timing_dic["nand"][0] += 0.1;
+            // break;
+            // case ACTION::NAND_SUB_FT:
+            //     timing_dic["nand"][0] -= 0.1;
+            // break;
+            // case ACTION::OR_ADD_FT:
+            //     timing_dic["or"][0] += 0.1;
+            // break;
+            // case ACTION::OR_SUB_FT:
+            //     timing_dic["or"][0] -= 0.1;
+            // break;
+            // case ACTION::NOR_ADD_FT:
+            //     timing_dic["nor"][0] += 0.1;
+            // break;
+            // case ACTION::NOR_SUB_FT:
+            //     timing_dic["nor"][0] -= 0.1;
+            // break;
+            // case ACTION::XOR_ADD_FT:
+            //     timing_dic["xor"][0] += 0.1;
+            // break;
+            // case ACTION::XOR_SUB_FT:
+            //     timing_dic["xor"][0] -= 0.1;
+            // break;
+            // case ACTION::XNOR_ADD_FT:
+            //     timing_dic["xnor"][0] += 0.1;
+            // break;
+            // case ACTION::XNOR_SUB_FT:
+            //     timing_dic["xnor"][0] -= 0.1;
+            // break;
+            // case ACTION::BUF_ADD_FT:
+            //     timing_dic["buf"][0] += 0.1;
+            // break;
+            // case ACTION::BUF_SUB_FT:
+            //     timing_dic["buf"][0] -= 0.1;
+            // break;
+            // case ACTION::NOT_ADD_FT:
+            //     timing_dic["not"][0] += 0.1;
+            // break;
+            // case ACTION::NOT_SUB_FT:
+            //     timing_dic["not"][0] -= 0.1;
+            // break;
         }
         bool temp;
         // if (buf_flag)
@@ -306,8 +427,14 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
         // abccmd("write_genlib ./temp.genlib");
         write_genlib("./temp.genlib", temp_dic, timing_dic, 0, temp);
         // write_liberty("temp_liberty.lib", temp_dic);
-        abccmd("super -I 4 -L 2 ./temp.genlib");
-        double after_cost = costMgr->cost_cal_use_turtle(0, buf_flag, 1);
+        if (abccmd("super -I 4 -L 2 ./temp.genlib")) {
+            cout << "super bug!!!" << endl;
+            temp_dic = record;
+            timing_dic = record2;
+            continue;
+        }
+        // abccmd("super ./temp.genlib");
+        double after_cost = costMgr->cost_cal_use_turtle(0, 1);
         // cout << after_cost << endl;
         double diff = cost_diff(orig_cost, after_cost, init_cost);
         // std::cout << "cost prob:" << exp(-diff / T)  << "\n"; 
@@ -320,6 +447,7 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
                 write_genlib("./contest.genlib", temp_dic, timing_dic, 0, temp);
                 // abccmd("write_genlib ./contest.genlib");
                 abccmd("super -I 4 -L 2 ./contest.genlib");
+                // abccmd("super ./contest.genlib");
                 // costMgr->cost_cal_use_turtle(1, buf_flag, 0);
 
                 // write_liberty("./contest_liberty.lib", temp_dic);
@@ -330,6 +458,11 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
             }
             if (low_effort_best_cost < best_cost) {
                 costMgr->change_name();
+                if (buf_flag)
+                    abccmd("write_lib best_liberty.lib");
+                else 
+                    abccmd("write_genlib best.genlib");
+                costMgr->set_best_dic(gate_cost_dic);
                 best_cost = low_effort_best_cost;
             }
         }

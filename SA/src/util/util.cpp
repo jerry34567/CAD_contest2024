@@ -23,9 +23,9 @@ using namespace std;
 //    Global variables in util
 //----------------------------------------------------------------------
 
-RandomNumGen  rnGen(910314);  // use random seed = 0
+RandomNumGen  rnGen(81475);  // use random seed = 910314
 MyUsage       myUsage;
-my_RandomNumGen Rand(910314);
+my_RandomNumGen Rand(81475);
 
 //----------------------------------------------------------------------
 //    Global functions in util

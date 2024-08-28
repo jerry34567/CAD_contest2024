@@ -14,8 +14,10 @@ compile_commands.json
 library/
 *.aig
 *.v
+*.blif
 *.txt
-*log
+*log*
+*.out
 
 # abc log files
 abc.history
@@ -65,3 +67,5 @@ cadcontest
 
 # tcl file
 *.tcl
+
+test_*

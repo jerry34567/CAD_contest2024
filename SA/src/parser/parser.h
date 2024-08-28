@@ -10,6 +10,7 @@
 #include <array>
 #include <sstream>
 #include <regex>
+#include <unordered_set>
 
 
 using json = nlohmann::json;
@@ -35,7 +36,7 @@ void write_genlib(const string&, map<string, pair<string, double>>&, map<string,
 void write_syntcl(const string&, const string&);
 void initTimingDictionary(map<string, vector<double>>&);
 void write_liberty(const string&, map<string, pair<string, double>>&);
-int parser(const string&, const string&, const string&, map<string, pair<string, double>>&, map<string, vector<double>>&, bool&);
+unordered_map<string, unordered_set<string>> parser(const string&, const string&, const string&, map<string, pair<string, double>>&, map<string, vector<double>>&, bool&);
 
 
 

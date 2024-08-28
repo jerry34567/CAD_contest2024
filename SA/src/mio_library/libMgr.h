@@ -26,6 +26,7 @@ public:
     MioMgr();
     ~MioMgr(){};
     void revise_genlib(map<string, vector<double>>& timing_dic, map<string, pair<string, double>>& temp_dic);
+    Mio_Gate_t* find_gate_with_name(string name) { return name_to_gate[name]; }
 private:
     Mio_Gate_t* buf;
     Mio_Gate_t* inv;
