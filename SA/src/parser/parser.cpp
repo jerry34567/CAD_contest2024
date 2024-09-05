@@ -35,7 +35,7 @@ void try_to_change_gate(string gate_type, unordered_map<string, unordered_set<st
         string args1 = "-library " + lib_file + " -netlist " + "temp.v" + " -output temp.out";
         string temp1 = exec(cost_exe, args1);
         double temp_cost = extractCost(temp1);
-        cout << it << " " << temp_cost << endl;
+        // cout << it << " " << temp_cost << endl;
         if (temp_cost < temp_best_cost) {
             temp_best = it;
             temp_best_cost = temp_cost;
@@ -118,6 +118,14 @@ void initTimingDictionary_using_cost(map<string, vector<double>>& timing_dic, ma
     int level = Abc_NtkLevel(pNtk);
     int no_timing = 0;
     for (auto& cell : temp_dic) {
+        if (level > 150) {
+            timing_dic[cell.first] = {1, 0};
+            continue;
+        }
+        if (no_timing == 4) {
+            timing_dic[cell.first] = {1, 0};
+            continue;
+        }
         int temp_level = 1;
         double first_cost;
         double cost_distance;
@@ -174,9 +182,9 @@ void initTimingDictionary_using_cost(map<string, vector<double>>& timing_dic, ma
             }
             temp_level++;
         }
-        if (temp_level == level * 3) {
+        if (temp_level >= level * 3) {
             timing_dic[cell.first] = {1, 0};
-
+            no_timing++;
         }
     }
 }
@@ -224,8 +232,14 @@ void write_genlib(const string& output_file_name, map<string, pair<string, doubl
         writefile << "GATE " << cell_data.second.first << "\t";
         if (cell_data.second.second > 100000) {
             if (cell_data.first == "not") {
-                writefile << temp_dic["nand"].second << "\t";
-                cell_data.second.second = temp_dic["nand"].second;
+                if (temp_dic["nand"].second < temp_dic["nor"].second) {
+                    writefile << temp_dic["nand"].second << "\t";
+                    cell_data.second.second = temp_dic["nand"].second;
+                }
+                else {
+                    writefile << temp_dic["nor"].second << "\t";
+                    cell_data.second.second = temp_dic["nor"].second;
+                }
                 not_penalty = true;
             }
             else
@@ -237,7 +251,8 @@ void write_genlib(const string& output_file_name, map<string, pair<string, doubl
         writefile << "PIN * " << dictionary2[cell_data.first] << " 1 999 ";
         writefile << timing_dic[cell_data.first][0] << " " << timing_dic[cell_data.first][1] << " " << timing_dic[cell_data.first][0] << " " << timing_dic[cell_data.first][1] << "\n";
     }
-    writefile << "GATE zero\t" << max_area << "\tY=CONST0;\nGATE one\t" << max_area << "\tY=CONST1;\n";
+    writefile << "GATE _const0_\t" << max_area << "\tY=CONST0;\nGATE _const1_\t" << max_area << "\tY=CONST1;\n";
+    // writefile << "GATE zero\t" << max_area << "\tY=CONST0;\nGATE one\t" << max_area << "\tY=CONST1;\n";
     
     if (is_super)
         for (auto& cell_data : abcSuperMgr->get_name_to_super()) {

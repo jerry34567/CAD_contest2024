@@ -322,9 +322,15 @@ vector<string> new_cmd_simulated_annealing(double& low_effort_best_cost, double&
     best_action.insert(it, "strash");
     double init_cost = costMgr->cost_cal(0);
 
-    cout << "init: " << init_cost << endl;
+    // cout << "init: " << init_cost << endl;
 
     if (init_cost < low_effort_best_cost) {
+        costMgr->change_low_effort_name();
+        costMgr->set_low_best_dic(gate_cost_dic);
+        if (buf_flag)
+            abccmd("write_lib low_best_liberty.lib");
+        else 
+            abccmd("write_genlib low_best.genlib");
         low_effort_best_cost = init_cost;
         best_action = cur_action;
         vector<string>::iterator it = best_action.begin();
@@ -361,7 +367,7 @@ vector<string> new_cmd_simulated_annealing(double& low_effort_best_cost, double&
         for (int i = 0; i < cur_action.size(); i++) {
             // cout << cur_action[i] << endl;
             if (abccmd(cur_action[i])) {
-                cout << "error!";
+                // cout << "error!";
                 success = false;
                 break;
             }
@@ -382,6 +388,12 @@ vector<string> new_cmd_simulated_annealing(double& low_effort_best_cost, double&
             // std::cout << "Replace! cost (orig/after): " << orig_cost << " " << after_cost << "\n"; 
             orig_cost = after_cost;
             if (orig_cost < low_effort_best_cost) {
+                costMgr->change_low_effort_name();
+                costMgr->set_low_best_dic(gate_cost_dic);
+                if (buf_flag)
+                    abccmd("write_lib low_best_liberty.lib");
+                else 
+                    abccmd("write_genlib low_best.genlib");
                 low_effort_best_cost = orig_cost;
                 best_action = cur_action;
                 vector<string>::iterator it = best_action.begin();
@@ -421,7 +433,7 @@ vector<string> new_cmd_simulated_annealing_using_map(double& best_cost, bool buf
     }
 
     double init_cost = costMgr->cost_cal_use_map(0, buf_flag);
-    cout << "init: " << init_cost << endl;
+    // cout << "init: " << init_cost << endl;
 
     Abc_FrameReplaceCurrentNetwork(abcMgr->get_Abc_Frame_t(), pRecord);
     double orig_cost = init_cost;
@@ -579,13 +591,36 @@ vector<string> new_cmd_simulated_annealing_using_turtle(double& low_effort_best_
     vector<string> temp_action = init_actions;
     vector<string> cur_action = init_actions;
     double init_cost = costMgr->cost_cal_use_turtle(0, 0);
-    cout << "init: " << init_cost << endl;
+    // cout << "init: " << init_cost << endl;
 
-    Abc_FrameReplaceCurrentNetwork(abcMgr->get_Abc_Frame_t(), pRecord);
     double orig_cost = init_cost;
     vector<string> best_action = init_actions;
     vector<string>::iterator it = best_action.begin();
     best_action.insert(it, "strash");
+
+    if (init_cost < low_effort_best_cost) {
+        costMgr->change_turtle_low_effort_name();
+        costMgr->set_turtle_low_best_dic(gate_cost_dic);
+        if (buf_flag)
+            abccmd("write_lib turtle_low_best_liberty.lib");
+        else 
+            abccmd("write_genlib turtle_low_best.genlib");
+        low_effort_best_cost = init_cost;
+        best_action = cur_action;
+        vector<string>::iterator it = best_action.begin();
+        best_action.insert(it, "strash");
+    }
+    if (low_effort_best_cost < best_cost) {
+        best_cost = low_effort_best_cost;
+        costMgr->change_name();
+        if (buf_flag)
+            abccmd("write_lib best_liberty.lib");
+        else 
+            abccmd("write_genlib best.genlib");
+        costMgr->set_best_dic(gate_cost_dic);
+    }
+    
+    Abc_FrameReplaceCurrentNetwork(abcMgr->get_Abc_Frame_t(), pRecord);
     // parameters
     float T = 500; // 500
     float T_low = 0.5; // 0.5
@@ -603,7 +638,7 @@ vector<string> new_cmd_simulated_annealing_using_turtle(double& low_effort_best_
         bool success = true;
         for (int i = 0; i < cur_action.size(); i++) {
             if (abccmd(cur_action[i])) {
-                cout << "error!";
+                // cout << "error!";
                 success = false;
                 break;
             }
@@ -623,6 +658,12 @@ vector<string> new_cmd_simulated_annealing_using_turtle(double& low_effort_best_
             // std::cout << "Replace! cost (orig/after): " << orig_cost << " " << after_cost << "\n"; 
             orig_cost = after_cost;
             if (orig_cost < low_effort_best_cost) {
+                costMgr->change_turtle_low_effort_name();
+                costMgr->set_turtle_low_best_dic(gate_cost_dic);
+                if (buf_flag)
+                    abccmd("write_lib turtle_low_best_liberty.lib");
+                else 
+                    abccmd("write_genlib turtle_low_best.genlib");
                 low_effort_best_cost = orig_cost;
                 best_action = cur_action;
                 vector<string>::iterator it = best_action.begin();

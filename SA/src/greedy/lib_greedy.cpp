@@ -318,7 +318,7 @@ void lib_greedy(double& low_effort_best_cost, double& best_cost, map<string, pai
             double temp_best_cost = record_cost;
             double times = 0;
             for (int i = 0; i < improve_actions.size() && i < 3; i++) {
-                cout << improve_actions[i].first << endl;
+                // cout << improve_actions[i].first << endl;
                 double cost = do_action(improve_actions[i].first, temp_dic, timing_dic, buf_flag);
                 if (cost < temp_best_cost) {
                     temp_best_cost = cost;
@@ -330,7 +330,7 @@ void lib_greedy(double& low_effort_best_cost, double& best_cost, map<string, pai
             }
 
             for (int i = 0; i <= times; i++) {
-                cout << do_action(improve_actions[i].first, record, record2, buf_flag) << endl;
+                do_action(improve_actions[i].first, record, record2, buf_flag);
             }
 
             // write_genlib("contest.genlib", record, record2, 0);
@@ -418,7 +418,7 @@ void lib_greedy_using_turtle(double& low_effort_best_cost, double& best_cost, ma
             temp_dic = record;
             timing_dic = record2;
             for (int i = 0; i <= times; i++) {
-                cout << do_action_use_turtle(improve_actions[i].first, record, record2, buf_flag) << endl;
+                do_action_use_turtle(improve_actions[i].first, record, record2, buf_flag);
             }
             bool temp;
             write_genlib("./contest.genlib", record, record2, 0, temp);

@@ -3,6 +3,9 @@
 #include "abc_util.h"
 #include "util.h"
 #include "parser.h"
+#include <filesystem>
+#include <csignal>
+#include <csetjmp> 
 
 CostMgr* costMgr;
 extern AbcSuperMgr* abcSuperMgr;
@@ -10,6 +13,14 @@ extern AbcMgr* abcMgr;
 extern MioMgr* mioMgr;
 extern SclMgr* sclMgr;
 extern my_RandomNumGen Rand;
+
+std::jmp_buf jump_buffer;
+
+void signalHandler(int signum) {
+    std::cerr << "Caught signal " << signum << " (abort signal)." << std::endl;
+    // 如果希望程式不退出，則不調用 exit()
+    std::longjmp(jump_buffer, 1);
+}
 
 string exec(const string& cmd, const string& args) {
     array<char, 128> buffer;
@@ -160,14 +171,14 @@ void choose_best_map(bool has_timing) {
     costMgr->set_QNf(record_QNf);
     costMgr->set_RNf(record_RNf);
     costMgr->set_aMfs3(record_aMfs3);
-    cout << "pDch: " << record_pDch << endl;
-    cout << "fDch: " << record_fDch << endl;
-    cout << "pNf: " << record_pNf << endl;
-    cout << "aMfs3: " << record_aMfs3 << endl;
-    cout << "FNf: " << record_FNf << endl;
-    cout << "ENf: " << record_ENf << endl;
-    cout << "QNf: " << record_QNf << endl;
-    cout << "RNf: " << record_RNf << endl;
+    // cout << "pDch: " << record_pDch << endl;
+    // cout << "fDch: " << record_fDch << endl;
+    // cout << "pNf: " << record_pNf << endl;
+    // cout << "aMfs3: " << record_aMfs3 << endl;
+    // cout << "FNf: " << record_FNf << endl;
+    // cout << "ENf: " << record_ENf << endl;
+    // cout << "QNf: " << record_QNf << endl;
+    // cout << "RNf: " << record_RNf << endl;
 }
 
 void choose_best_map() {
@@ -242,14 +253,14 @@ void choose_best_map() {
     costMgr->set_QNf(record_QNf);
     costMgr->set_RNf(record_RNf);
     costMgr->set_aMfs3(record_aMfs3);
-    cout << "pDch: " << record_pDch << endl;
-    cout << "fDch: " << record_fDch << endl;
-    cout << "pNf: " << record_pNf << endl;
-    cout << "aMfs3: " << record_aMfs3 << endl;
-    cout << "FNf: " << record_FNf << endl;
-    cout << "ENf: " << record_ENf << endl;
-    cout << "QNf: " << record_QNf << endl;
-    cout << "RNf: " << record_RNf << endl;
+    // cout << "pDch: " << record_pDch << endl;
+    // cout << "fDch: " << record_fDch << endl;
+    // cout << "pNf: " << record_pNf << endl;
+    // cout << "aMfs3: " << record_aMfs3 << endl;
+    // cout << "FNf: " << record_FNf << endl;
+    // cout << "ENf: " << record_ENf << endl;
+    // cout << "QNf: " << record_QNf << endl;
+    // cout << "RNf: " << record_RNf << endl;
 }
 
 // void turtle_choose_best_map() {
@@ -279,6 +290,7 @@ void gate_sizing_util(string gate_type, unordered_map<string, unordered_set<stri
             write_liberty("contest_liberty.lib", temp_dic);
             abccmd("read contest_liberty.lib");
             sclMgr = new SclMgr;
+            sclMgr->revise_scllib(timing_dic, temp_dic);
         }
         else {
             write_genlib("./contest.genlib", temp_dic, timing_dic, 0, _not_penalty);
@@ -300,6 +312,7 @@ void gate_sizing_util(string gate_type, unordered_map<string, unordered_set<stri
         write_genlib("./contest.genlib", temp_dic, timing_dic, 0, _not_penalty);
         abccmd("read contest_liberty.lib");
         sclMgr = new SclMgr;
+        sclMgr->revise_scllib(timing_dic, temp_dic);
     }
     else {
         write_genlib("./contest.genlib", temp_dic, timing_dic, 0, _not_penalty);
@@ -314,7 +327,8 @@ void CostMgr::gate_sizing(unordered_map<string, unordered_set<string>>& all_gate
     gate_sizing_util("or", all_gate, temp_dic, timing_dic, _lib_file, _cost_exe, add_buf, _not_penalty);
     gate_sizing_util("nor", all_gate, temp_dic, timing_dic, _lib_file, _cost_exe, add_buf, _not_penalty);
     gate_sizing_util("not", all_gate, temp_dic, timing_dic, _lib_file, _cost_exe, add_buf, _not_penalty);
-    gate_sizing_util("buf", all_gate, temp_dic, timing_dic, _lib_file, _cost_exe, add_buf, _not_penalty);
+    if (add_buf)
+        gate_sizing_util("buf", all_gate, temp_dic, timing_dic, _lib_file, _cost_exe, add_buf, _not_penalty);
     gate_sizing_util("xor", all_gate, temp_dic, timing_dic, _lib_file, _cost_exe, add_buf, _not_penalty);
     gate_sizing_util("xnor", all_gate, temp_dic, timing_dic, _lib_file, _cost_exe, add_buf, _not_penalty);
 }
@@ -326,7 +340,7 @@ void CostMgr::gate_sizing_using_pre_compute_fast_gate(map<string, pair<string, d
         string args = "-library " + _lib_file + " -netlist " + "temp.v" + " -output temp.out";
         string output = exec(_cost_exe, args);
         double cost = extractCost(output);
-        cout << "fast_gate cost: " << cost << endl;
+        // cout << "fast_gate cost: " << cost << endl;
         if (best_cost > cost) {
             best_cost = cost;
             costMgr->change_name();
@@ -357,14 +371,28 @@ double CostMgr::cost_cal(bool use_output) {
     act += "-R " + to_string(RNf) + " ";
     act += "-C 32";
     // cout << act << endl;
-    abccmd(act);
+    if (setjmp(jump_buffer) == 0) {
+        std::signal(SIGABRT, signalHandler);
+        abccmd(act);
+    }
+    else {
+        abccmd("restore");
+        return __FLT_MAX__;
+    }
 
     abccmd("&put");
     act = "mfs3 -e ";
     act += aMfs3 ? "-a " : "";
     act += "-I 4 -O 2";
     // cout << act << endl;
-    abccmd(act);
+    if (setjmp(jump_buffer) == 0) {
+        std::signal(SIGABRT, signalHandler);
+        abccmd(act);
+    }
+    else {
+        abccmd("restore");
+        return __FLT_MAX__;
+    }
     // abccmd("mfs3 -ae -I 4 -O 2");
     // abccmd("mfs3 -ae -I 4 -O 2");
     if (add_buf) {
@@ -444,36 +472,25 @@ double CostMgr::cost_cal_use_turtle(bool use_output, bool use_temp_lib) {
     else
         command = "./test " + verilog_file + " ./contest.genlib ./contest.super"; 
 
+    command += has_timing ? " has_timing" : " has_no_timing";
     int result = system(command.c_str());
 
+    string read_file = "read -m ";
+    read_file += verilog_file;
+    abccmd(read_file);
+    string write_file = "write_verilog ";
+    write_file += verilog_file;
     if (_not_penalty) {
-        string read_file = "read -m ";
-        read_file += verilog_file;
-        abccmd(read_file);
         replace_not_with_nand();
-        string write_file = "write_verilog ";
-        write_file += verilog_file;
-        abccmd(write_file);
     }
     if (add_buf) {
-        string read_file = "read -m ";
-        read_file += verilog_file;
-        abccmd(read_file);
         abccmd("topo");
         abccmd("buffer -N " + to_string(_buf_num));
-        string write_file = "write_verilog ";
-        write_file += verilog_file;
-        abccmd(write_file);
     }
     if (_add_const) {
-        string read_file = "read -m ";
-        read_file += verilog_file;
-        abccmd(read_file);
         add_const_on_pi();
-        string write_file = "write_verilog ";
-        write_file += verilog_file;
-        abccmd(write_file);
     }
+    abccmd(write_file);
 
     abccmd("restore");
 
@@ -502,20 +519,25 @@ double CostMgr::cost_cal_use_turtle_high_effort(bool use_output, bool use_temp_l
     else
         command = "./test " + verilog_file + " ./contest.genlib ./contest.super"; 
 
+    command += has_timing ? " has_timing" : "";
     int result = system(command.c_str());
 
     abccmd("read -m temp.v");
     abccmd("backup");
-    if (abccmd("mfs3 -ae -I 5 -O 5 -R 4 -E 1000")) {
-        abccmd("restore");
-        if (abccmd("mfs3 -aer -I 5 -O 5 -R 4 -E 1000")) {
-            abccmd("restore");
-        }
+    // if (abccmd("mfs3 -ae -I 5 -O 5 -R 4 -E 1000")) {
+    if (setjmp(jump_buffer) == 0) {
+        std::signal(SIGABRT, signalHandler);
+        abccmd("mfs3 -ae -M 2500 -R 4 -E 1000");
     }
     else {
-        if (abccmd("mfs3 -aer -I 5 -O 5 -R 4 -E 1000")) {
-            abccmd("restore");
-        }
+        abccmd("restore");
+    }
+    if (setjmp(jump_buffer) == 0) {
+        std::signal(SIGABRT, signalHandler);
+        abccmd("mfs3 -aer -M 2500 -R 4 -E 1000");
+    }
+    else {
+        abccmd("restore");
     }
 
     if (add_buf) {
@@ -552,6 +574,49 @@ void CostMgr::change_name() {
     }
 }
 
+void CostMgr::change_low_effort_name() {
+    std::remove(_low_effort_file_name.c_str());
+
+    try {
+        std::filesystem::copy(_temp_file, _low_effort_file_name, std::filesystem::copy_options::overwrite_existing);
+        std::cout << "low_effort_temp file successfully copied" << std::endl;
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Error copying file: " << e.what() << std::endl;
+    }
+}
+
+void CostMgr::change_turtle_low_effort_name() {
+    std::remove(_turtle_low_effort_file_name.c_str());
+
+    try {
+        std::filesystem::copy(_temp_file, _turtle_low_effort_file_name, std::filesystem::copy_options::overwrite_existing);
+        std::cout << "turtle low_effort_temp file successfully copied" << std::endl;
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Error copying file: " << e.what() << std::endl;
+    }
+}
+
+void CostMgr::change_high_effort_name() {
+    std::remove(_high_effort_file_name.c_str());
+
+    try {
+        std::filesystem::copy(_temp_file, _high_effort_file_name, std::filesystem::copy_options::overwrite_existing);
+        std::cout << "high_effort_temp file successfully copied" << std::endl;
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Error copying file: " << e.what() << std::endl;
+    }
+}
+
+void CostMgr::change_turtle_high_effort_name() {
+    std::remove(_turtle_high_effort_file_name.c_str());
+
+    try {
+        std::filesystem::copy(_temp_file, _turtle_high_effort_file_name, std::filesystem::copy_options::overwrite_existing);
+        std::cout << "turtle high_effort_temp file successfully copied" << std::endl;
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "Error copying file: " << e.what() << std::endl;
+    }
+}
 
 double CostMgr::cost_cal_high_effort(bool use_output) {
     abccmd("backup");
@@ -573,19 +638,42 @@ double CostMgr::cost_cal_high_effort(bool use_output) {
     act += "-R " + to_string(RNf) + " ";
     act += "-C 32";
     // cout << act << endl;
-    abccmd(act);
+    if (setjmp(jump_buffer) == 0) {
+        std::signal(SIGABRT, signalHandler);
+        abccmd(act);
+    }
+    else {
+        abccmd("restore");
+        return __FLT_MAX__;
+    }
 
     abccmd("&put");
     act = "mfs3 -e ";
     act += aMfs3 ? "-a " : "";
-    act += "-I 5 -O 5 -R 4 -E 1000";
+    // act += "-I 5 -O 5 -R 4 -E 1000";
+    act += "-M 2500 -R 4 -E 1000";
     // cout << act << endl;
-    abccmd(act);
+    if (setjmp(jump_buffer) == 0) {
+        std::signal(SIGABRT, signalHandler);
+        abccmd(act);
+    }
+    else {
+        abccmd("restore");
+        return __FLT_MAX__;
+    }
     act = "mfs3 -er ";
     act += aMfs3 ? "-a " : "";
-    act += "-I 5 -O 5 -R 4 -E 1000";
+    // act += "-I 5 -O 5 -R 4 -E 1000";
+    act += "-M 2500 -R 4 -E 1000";
     // cout << act << endl;
-    abccmd(act);
+    if (setjmp(jump_buffer) == 0) {
+        std::signal(SIGABRT, signalHandler);
+        abccmd(act);
+    }
+    else {
+        abccmd("restore");
+        return __FLT_MAX__;
+    }
 
     // abccmd("&get -n");
     // abccmd("&dch -f");

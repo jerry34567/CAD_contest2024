@@ -45,17 +45,30 @@ public:
         name_to_type[name] = type;
     }
     void change_name();
+    void change_low_effort_name();
+    void change_turtle_low_effort_name();
+    void change_high_effort_name();
+    void change_turtle_high_effort_name();
     void set_not_penalty(bool not_penalty) { _not_penalty = not_penalty; }
     void set_add_const(bool add_const ) { _add_const = add_const; }
     string get_type(string name) { return name_to_type[name]; }
     string get_lib() { return _lib_file; }
     string get_cost_exe() { return _cost_exe; }
+    string get_low_effort_file() { return _low_effort_file_name; }
+    string get_turtle_low_effort_file() { return _turtle_low_effort_file_name; }
+    string get_high_effort_file() { return _high_effort_file_name; }
+    string get_turtle_high_effort_file() { return _turtle_high_effort_file_name; }
     map<string, pair<string, double>> get_best_dic() { return best_cost_dic; }
+    map<string, pair<string, double>> get_low_best_dic() { return low_best_cost_dic; }
+    map<string, pair<string, double>> get_high_best_dic() { return high_best_cost_dic; }
+    map<string, pair<string, double>> get_turtle_low_best_dic() { return turtle_low_best_cost_dic; }
+    map<string, pair<string, double>> get_turtle_high_best_dic() { return turtle_high_best_cost_dic; }
     void set_pDch(bool flag) { pDch = flag; }
     bool get_pDch() { return pDch; }
     void set_fDch(bool flag) { fDch = flag; }
     bool get_fDch() { return fDch; }
     void set_add_buf(bool flag) { add_buf = flag; }
+    bool get_add_buf() { return add_buf; }
     void set_buf_num(int buf_num) { _buf_num = buf_num; }
     void set_aMfs3(bool flag) { aMfs3 = flag; }
     bool get_aMfs3() { return aMfs3; }
@@ -69,10 +82,15 @@ public:
     int  get_QNf() { return QNf; }
     void set_RNf(int number) { RNf = number; }
     int  get_RNf() { return RNf; }
+    void set_has_timing(bool flag) { has_timing = flag; }
     // void set_super(bool flag) { use_super = flag; }
     void gate_sizing(unordered_map<string, unordered_set<string>>& special_dic, map<string, pair<string, double>>& temp_dic, map<string, vector<double>>& timing_dic);
     void gate_sizing_using_pre_compute_fast_gate(map<string, pair<string, double>>& fast_gate_dic, double& best_cost);
     void set_best_dic (map<string, pair<string, double>>& temp_dic) { best_cost_dic = temp_dic; }
+    void set_low_best_dic (map<string, pair<string, double>>& temp_dic) { low_best_cost_dic = temp_dic; }
+    void set_high_best_dic (map<string, pair<string, double>>& temp_dic) { high_best_cost_dic = temp_dic; }
+    void set_turtle_low_best_dic (map<string, pair<string, double>>& temp_dic) { turtle_low_best_cost_dic = temp_dic; }
+    void set_turtle_high_best_dic (map<string, pair<string, double>>& temp_dic) { turtle_high_best_cost_dic = temp_dic; }
 
 
 private:
@@ -81,6 +99,10 @@ private:
     string _output_file;
     string _temp_file;
     string _module_name;
+    string _low_effort_file_name = "low_effort.v";
+    string _turtle_low_effort_file_name = "turtle_low_effort.v";
+    string _high_effort_file_name = "high_effort.v";
+    string _turtle_high_effort_file_name = "turtle_high_effort.v";
     bool _not_penalty = false;
     bool _add_const = false;
     map<string, string> name_to_type;
@@ -97,6 +119,11 @@ private:
     // bool use_super = true;
     //// above is for area oriented
     map<string, pair<string, double>> best_cost_dic;
+    map<string, pair<string, double>> low_best_cost_dic;
+    map<string, pair<string, double>> high_best_cost_dic;
+    map<string, pair<string, double>> turtle_low_best_cost_dic;
+    map<string, pair<string, double>> turtle_high_best_cost_dic;
+    bool has_timing = false;
 };
 
 #endif

@@ -20,7 +20,7 @@ void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, ma
     map<string, pair<string, double>> record;
     map<string, vector<double>> record2;
     double orig_cost = init_cost;
-    cout << "orig: " << orig_cost << endl;
+    // cout << "orig: " << orig_cost << endl;
 
     // parameters
     float T = 500;
@@ -210,6 +210,12 @@ void lib_simulated_annealing(double& low_effort_best_cost, double& best_cost, ma
             // std::cout << "Replace! cost (orig/after): " << orig_cost << "  " << after_cost << "\n"; 
             orig_cost = after_cost;
             if (orig_cost < low_effort_best_cost) {
+                costMgr->change_low_effort_name();
+                costMgr->set_low_best_dic(gate_cost_dic);
+                if (buf_flag)
+                    abccmd("write_lib low_best_liberty.lib");
+                else 
+                    abccmd("write_genlib low_best.genlib");
                 // costMgr->cost_cal(1, buf_flag);
                 // write_genlib("./contest.genlib", temp_dic, timing_dic, 0);
                 // write_liberty("./contest_liberty.lib", temp_dic);
@@ -254,7 +260,7 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
     map<string, pair<string, double>> record;
     map<string, vector<double>> record2;
     double orig_cost = init_cost;
-    cout << "orig: " << orig_cost << endl;
+    // cout << "orig: " << orig_cost << endl;
 
     // parameters
     float T = 500;
@@ -428,7 +434,7 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
         write_genlib("./temp.genlib", temp_dic, timing_dic, 0, temp);
         // write_liberty("temp_liberty.lib", temp_dic);
         if (abccmd("super -I 4 -L 2 ./temp.genlib")) {
-            cout << "super bug!!!" << endl;
+            // cout << "super bug!!!" << endl;
             temp_dic = record;
             timing_dic = record2;
             continue;
@@ -444,6 +450,12 @@ void lib_simulated_annealing_using_turtle(double& low_effort_best_cost, double& 
             // std::cout << "Replace! cost (orig/after): " << orig_cost << "  " << after_cost << "\n"; 
             orig_cost = after_cost;
             if (orig_cost < low_effort_best_cost) {
+                costMgr->change_turtle_low_effort_name();
+                costMgr->set_turtle_low_best_dic(gate_cost_dic);
+                if (buf_flag)
+                    abccmd("write_lib turtle_low_best_liberty.lib");
+                else 
+                    abccmd("write_genlib turtle_low_best.genlib");
                 write_genlib("./contest.genlib", temp_dic, timing_dic, 0, temp);
                 // abccmd("write_genlib ./contest.genlib");
                 abccmd("super -I 4 -L 2 ./contest.genlib");

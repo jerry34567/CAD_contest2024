@@ -28,7 +28,7 @@ vector<string> init_cmd_greedy() {
             }
             Abc_FrameReplaceCurrentNetwork(abcMgr->get_Abc_Frame_t(), pRecord);
         }
-        cout << best_cmd << " " << best_score << endl;
+        // cout << best_cmd << " " << best_score << endl;
         actions.push_back(best_cmd);
         abccmd(best_cmd);
     }
@@ -59,7 +59,7 @@ vector<string> init_cmd_greedy_turtle() {
             }
             Abc_FrameReplaceCurrentNetwork(abcMgr->get_Abc_Frame_t(), pRecord);
         }
-        cout << best_cmd << " " << best_score << endl;
+        // cout << best_cmd << " " << best_score << endl;
         actions.push_back(best_cmd);
         abccmd(best_cmd);
     }

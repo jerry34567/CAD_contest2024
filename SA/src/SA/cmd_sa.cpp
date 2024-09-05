@@ -16,7 +16,7 @@ vector<string> cmd_simulated_annealing(double& best_cost, bool buf_flag){
 
     abccmd("strash");
     double init_cost = costMgr->cost_cal(0);
-    cout << "init: " << init_cost << endl;
+    // cout << "init: " << init_cost << endl;
 
     double orig_cost = init_cost;
     vector<string> best_action;
@@ -129,7 +129,7 @@ vector<string> cmd_simulated_annealing_using_map(double& best_cost, bool buf_fla
 
     abccmd("strash");
     double init_cost = costMgr->cost_cal_use_map(0, buf_flag);
-    cout << "init: " << init_cost << endl;
+    // cout << "init: " << init_cost << endl;
 
     double orig_cost = init_cost;
     vector<string> best_action;
@@ -241,7 +241,7 @@ vector<string>cmd_simulated_annealing_using_turtle(double& best_cost, bool buf_f
 
     abccmd("strash");
     double init_cost = costMgr->cost_cal_use_turtle(0, 0);
-    cout << "init: " << init_cost << endl;
+    // cout << "init: " << init_cost << endl;
 
     double orig_cost = init_cost;
     vector<string> best_action;

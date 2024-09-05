@@ -1,7 +1,9 @@
 #include "abc_util.h"
 #include "gvAbcMgr.h"
+#include "cost.h"
 
 extern AbcMgr* abcMgr;
+extern CostMgr* costMgr;
 
 int ReplaceNotGate( Abc_Frame_t * pAbc )
 {
@@ -221,6 +223,315 @@ void replace_not_with_nand() {
             Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
             pTemp->pData = nand2;
             Abc_ObjReplace(pNode, pTemp);
+        }
+    }
+}
+
+void replace_not_with_nor() {
+    Abc_Ntk_t* pNtk = Abc_FrameReadNtk(abcMgr->get_Abc_Frame_t());
+    Abc_Obj_t* pNode;
+    int i;
+    Mio_Gate_t* inv = Mio_LibraryReadInv((Mio_Library_t *)Abc_FrameReadLibGen());
+    Mio_Gate_t* nor2 = Mio_LibraryReadNor2((Mio_Library_t *)Abc_FrameReadLibGen());
+    Mio_Gate_t* nand2 = Mio_LibraryReadNand2((Mio_Library_t *)Abc_FrameReadLibGen());
+    Abc_NtkForEachNode(pNtk, pNode, i) {
+        if (pNode->pData == inv) {
+            Abc_Obj_t* pTemp = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+            Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+            Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+            pTemp->pData = nor2;
+            Abc_ObjReplace(pNode, pTemp);
+        }
+        else if (pNode->pData == nand2) {
+            if (Abc_ObjFanin0(pNode) == Abc_ObjFanin1(pNode)) {
+               Abc_Obj_t* pTemp = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+                Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+                pTemp->pData = nor2;
+                Abc_ObjReplace(pNode, pTemp); 
+            }
+        }
+    }
+}
+
+void replace_not_func(int TimeOut, int mode, double& best_cost, double& effort_cost, int switch_mode) {
+    abctime nTimeToStop = TimeOut ? Abc_Clock() + TimeOut * CLOCKS_PER_SEC : 0;
+    abctime clkStart    = Abc_Clock();
+    Abc_Ntk_t* pNtk = Abc_FrameReadNtk(abcMgr->get_Abc_Frame_t());
+    Abc_Obj_t* pNode;
+    int i;
+    Mio_Gate_t* inv = Mio_LibraryReadInv((Mio_Library_t *)Abc_FrameReadLibGen());
+    Mio_Gate_t* nor2 = Mio_LibraryReadNor2((Mio_Library_t *)Abc_FrameReadLibGen());
+    Mio_Gate_t* nand2 = Mio_LibraryReadNand2((Mio_Library_t *)Abc_FrameReadLibGen());
+    string argument = "-library " + costMgr->get_lib() + " -netlist temp.v -output temp.out";
+    string score_out;
+    float score;
+    int node_num = Vec_PtrSize((pNtk)->vObjs);
+    // cout << "node num: " << node_num << endl;
+    Abc_NtkForEachNode(pNtk, pNode, i) {
+        if (i > node_num) return;
+        int record = mode;
+        if (mode == 0) {
+            if (pNode->pData == inv) {
+                Abc_Obj_t* pTemp = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+                Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+                pTemp->pData = nand2;
+                Abc_ObjReplace(pNode, pTemp);
+                abccmd("write_verilog temp.v");
+                score_out = exec(costMgr->get_cost_exe(), argument);
+                score = extractCost(score_out);
+                if (score < effort_cost) {
+                    record = 1;
+                    effort_cost = score;
+                    if (switch_mode == 0) {
+                        costMgr->change_high_effort_name();
+                    }
+                    else if(switch_mode == 1) {
+                        costMgr->change_turtle_high_effort_name();
+                    }
+                    else if (switch_mode == 2) {
+                        costMgr->change_low_effort_name();
+                    }
+                    else {
+                        costMgr->change_turtle_low_effort_name();
+                    }
+                }
+                if (best_cost > score) {
+                    best_cost = score;
+                    if (costMgr->get_add_buf())
+                        abccmd("write_lib best_liberty.lib");
+                    else 
+                        abccmd("write_genlib best.genlib");
+                    costMgr->change_name();
+                    // cout << "change not with nand: " << score << endl;
+                }
+
+                Abc_Obj_t* pTemp2 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                Abc_ObjAddFanin(pTemp2, Abc_ObjFanin0(pTemp));
+                Abc_ObjAddFanin(pTemp2, Abc_ObjFanin0(pTemp));
+                pTemp2->pData = nor2;
+                Abc_ObjReplace(pTemp, pTemp2);
+                abccmd("write_verilog temp.v");
+                score_out = exec(costMgr->get_cost_exe(), argument);
+                score = extractCost(score_out);
+                if (score < effort_cost) {
+                    record = 2;
+                    effort_cost = score;
+                    if (switch_mode == 0) {
+                        costMgr->change_high_effort_name();
+                    }
+                    else if(switch_mode == 1) {
+                        costMgr->change_turtle_high_effort_name();
+                    }
+                    else if (switch_mode == 2) {
+                        costMgr->change_low_effort_name();
+                    }
+                    else {
+                        costMgr->change_turtle_low_effort_name();
+                    }
+                }
+                if (best_cost > score) {
+                    best_cost = score;
+                    if (costMgr->get_add_buf())
+                        abccmd("write_lib best_liberty.lib");
+                    else 
+                        abccmd("write_genlib best.genlib");
+                    costMgr->change_name();
+                    // cout << "change not with nor: " << score << endl;
+                }
+                
+                if (record != 2) {
+                    if (record == 1) {
+                        Abc_Obj_t* pTemp3 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        pTemp3->pData = nand2;
+                        Abc_ObjReplace(pTemp2, pTemp3);
+                    }
+                    else if (record == 0) {
+                        Abc_Obj_t* pTemp3 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        pTemp3->pData = inv;
+                        Abc_ObjReplace(pTemp2, pTemp3);
+                    }
+                }
+            }
+        }
+        else if (mode == 1) {
+            if (pNode->pData == nand2 && Abc_ObjFanin0(pNode) == Abc_ObjFanin1(pNode)) {
+                Abc_Obj_t* pTemp = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+                pTemp->pData = inv;
+                Abc_ObjReplace(pNode, pTemp);
+                abccmd("write_verilog temp.v");
+                score_out = exec(costMgr->get_cost_exe(), argument);
+                score = extractCost(score_out);
+                if (score < effort_cost) {
+                    record = 0;
+                    effort_cost = score;
+                    if (switch_mode == 0) {
+                        costMgr->change_high_effort_name();
+                    }
+                    else if(switch_mode == 1) {
+                        costMgr->change_turtle_high_effort_name();
+                    }
+                    else if (switch_mode == 2) {
+                        costMgr->change_low_effort_name();
+                    }
+                    else {
+                        costMgr->change_turtle_low_effort_name();
+                    }
+                }
+                if (best_cost > score) {
+                    best_cost = score;
+                    if (costMgr->get_add_buf())
+                        abccmd("write_lib best_liberty.lib");
+                    else 
+                        abccmd("write_genlib best.genlib");
+                    costMgr->change_name();
+                    // cout << "change nand with not: " << score << endl;
+                }
+
+                Abc_Obj_t* pTemp2 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                Abc_ObjAddFanin(pTemp2, Abc_ObjFanin0(pTemp));
+                Abc_ObjAddFanin(pTemp2, Abc_ObjFanin0(pTemp));
+                pTemp2->pData = nor2;
+                Abc_ObjReplace(pTemp, pTemp2);
+                abccmd("write_verilog temp.v");
+                score_out = exec(costMgr->get_cost_exe(), argument);
+                score = extractCost(score_out);
+                if (score < effort_cost) {
+                    record = 2;
+                    effort_cost = score;
+                    if (switch_mode == 0) {
+                        costMgr->change_high_effort_name();
+                    }
+                    else if(switch_mode == 1) {
+                        costMgr->change_turtle_high_effort_name();
+                    }
+                    else if (switch_mode == 2) {
+                        costMgr->change_low_effort_name();
+                    }
+                    else {
+                        costMgr->change_turtle_low_effort_name();
+                    }
+                }
+                if (best_cost > score) {
+                    best_cost = score;
+                    if (costMgr->get_add_buf())
+                        abccmd("write_lib best_liberty.lib");
+                    else 
+                        abccmd("write_genlib best.genlib");
+                    costMgr->change_name();
+                    // cout << "change nand with nor: " << score << endl;
+                }
+                
+                if (record != 2) {
+                    if (record == 1) {
+                        Abc_Obj_t* pTemp3 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        pTemp3->pData = nand2;
+                        Abc_ObjReplace(pTemp2, pTemp3);
+                    }
+                    else if (record == 0) {
+                        Abc_Obj_t* pTemp3 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        pTemp3->pData = inv;
+                        Abc_ObjReplace(pTemp2, pTemp3);
+                    }
+                }
+            }
+        }
+        else if (mode == 2) {
+            if (pNode->pData == nor2 && Abc_ObjFanin0(pNode) == Abc_ObjFanin1(pNode)) {
+                Abc_Obj_t* pTemp = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                Abc_ObjAddFanin(pTemp, Abc_ObjFanin0(pNode));
+                pTemp->pData = inv;
+                Abc_ObjReplace(pNode, pTemp);
+                abccmd("write_verilog temp.v");
+                score_out = exec(costMgr->get_cost_exe(), argument);
+                score = extractCost(score_out);
+                if (score < effort_cost) {
+                    record = 0;
+                    effort_cost = score;
+                    if (switch_mode == 0) {
+                        costMgr->change_high_effort_name();
+                    }
+                    else if(switch_mode == 1) {
+                        costMgr->change_turtle_high_effort_name();
+                    }
+                    else if (switch_mode == 2) {
+                        costMgr->change_low_effort_name();
+                    }
+                    else {
+                        costMgr->change_turtle_low_effort_name();
+                    }
+                }
+                if (best_cost > score) {
+                    best_cost = score;
+                    if (costMgr->get_add_buf())
+                        abccmd("write_lib best_liberty.lib");
+                    else 
+                        abccmd("write_genlib best.genlib");
+                    costMgr->change_name();
+                    // cout << "change nor with not: " << score << endl;
+                }
+
+                Abc_Obj_t* pTemp2 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                Abc_ObjAddFanin(pTemp2, Abc_ObjFanin0(pTemp));
+                Abc_ObjAddFanin(pTemp2, Abc_ObjFanin0(pTemp));
+                pTemp2->pData = nand2;
+                Abc_ObjReplace(pTemp, pTemp2);
+                abccmd("write_verilog temp.v");
+                score_out = exec(costMgr->get_cost_exe(), argument);
+                score = extractCost(score_out);
+                if (score < effort_cost) {
+                    record = 1;
+                    effort_cost = score;
+                    if (switch_mode == 0) {
+                        costMgr->change_high_effort_name();
+                    }
+                    else if(switch_mode == 1) {
+                        costMgr->change_turtle_high_effort_name();
+                    }
+                    else if (switch_mode == 2) {
+                        costMgr->change_low_effort_name();
+                    }
+                    else {
+                        costMgr->change_turtle_low_effort_name();
+                    }
+                }
+                if (best_cost > score) {
+                    best_cost = score;
+                    if (costMgr->get_add_buf())
+                        abccmd("write_lib best_liberty.lib");
+                    else 
+                        abccmd("write_genlib best.genlib");
+                    costMgr->change_name();
+                    // cout << "change nor with nand: " << score << endl;
+                }
+                
+                if (record != 1) {
+                    if (record == 2) {
+                        Abc_Obj_t* pTemp3 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        pTemp3->pData = nor2;
+                        Abc_ObjReplace(pTemp2, pTemp3);
+                    }
+                    else if (record == 0) {
+                        Abc_Obj_t* pTemp3 = Abc_NtkCreateObj(pNtk, ABC_OBJ_NODE);
+                        Abc_ObjAddFanin(pTemp3, Abc_ObjFanin0(pTemp2));
+                        pTemp3->pData = inv;
+                        Abc_ObjReplace(pTemp2, pTemp3);
+                    }
+                }
+            }
+        }
+        if ( nTimeToStop && Abc_Clock() > nTimeToStop ) {
+            return;
         }
     }
 }
